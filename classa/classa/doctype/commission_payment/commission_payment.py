@@ -26,6 +26,7 @@ class CommissionPayment(Document):
 		if self.total_achieved ==0:
 			self.get_details()
 		self.commission_calculations()
+		self.get_rates()
 
 	def on_submit(self):
 		self.update_invoice_payment()
@@ -315,6 +316,32 @@ class CommissionPayment(Document):
 		})
 		doc.insert()
 		doc.submit()
+
+	@frappe.whitelist()
+
+	def get_rates(self):
+		data_from_commission_scheduale = frappe.db.sql("""select total_target as total_target,
+															tier_1_amount as tier_1_amount,
+															tier_2_amount as tier_2_amount,
+															tier_3_amount as tier_3_amount,
+															tier_1_percent as tier_1_percent,
+															tier_2_percent as tier_2_percent,
+															tier_3_percent as tier_3_percent
+															from `tabCommission Schedule`
+															where parent = '{sales_person}'
+															and month = '{month}'
+															""".format(sales_person = self.employee,month=self.month),as_dict=1)
+		for comm in data_from_commission_scheduale:
+			self.total_target = comm.total_target
+			self.tier_1_amount = comm.tier_1_amount
+			self.tier_2_amount = comm.tier_2_amount
+			self.tier_3_amount = comm.tier_3_amount
+			self.tier_1_percent = comm.tier_1_percent
+			self.tier_2_percent = comm.tier_2_percent
+			self.tier_3_percent = comm.tier_3_percent
+
+
+
 
 	@frappe.whitelist()
 	def commission_calculations(self):

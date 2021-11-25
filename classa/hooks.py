@@ -9,6 +9,18 @@ app_color = "grey"
 app_email = "info@erpcloud.systems"
 app_license = "MIT"
 
+
+
+doc_events = {
+"Quotation": {
+	"validate": "classa.functions.quotation_validate"
+},
+"Sales Order": {
+	"before_submit": "classa.functions.sales_order_validate"
+}
+}
+
+
 # Includes in <head>
 # ------------------
 # include js, css files in header of desk.html

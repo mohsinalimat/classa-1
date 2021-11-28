@@ -13,7 +13,8 @@ app_license = "MIT"
 
 doc_events = {
 "Quotation": {
-	"validate": "classa.functions.quotation_validate"
+	"validate": "classa.functions.quotation_validate",
+	"before_submit": "classa.functions.quotation_submit"
 },
 "Sales Order": {
 	"before_submit": "classa.functions.sales_order_validate"

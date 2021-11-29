@@ -18,6 +18,9 @@ doc_events = {
 },
 "Sales Order": {
 	"before_submit": "classa.functions.sales_order_validate"
+},
+"Material Request": {
+	"after_insert": "classa.permission.share_mr"
 }
 }
 

@@ -93,3 +93,15 @@ def share_pr(doc, method=None):
         everyone = 0
         for x in users:
             add('Purchase Receipt', doc.name, x.user, read, write, share, everyone)
+
+
+@frappe.whitelist()
+def share_pe(doc, method=None):
+    users = frappe.db.sql(""" select user from `tabDocShare` where share_doctype = 'Account' and share_name = '{paid_to}' """.format(paid_to=doc.paid_to),as_dict=1)
+    read = 1
+    write = 1
+    share = 1
+    everyone = 0
+    if users:
+        for x in users:
+            add('Payment Entry', doc.name, x.user, read, write, share, everyone)

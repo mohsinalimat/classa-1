@@ -35,6 +35,9 @@ doc_events = {
 "Purchase Receipt": {
 	"after_insert": "classa.permission.share_pr"
 },
+"Payment Entry": {
+	"after_insert": "classa.permission.share_pe"
+},
 }
 
 

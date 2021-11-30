@@ -17,11 +17,24 @@ doc_events = {
 	"before_submit": "classa.functions.quotation_submit"
 },
 "Sales Order": {
-	"before_submit": "classa.functions.sales_order_validate"
+	"before_submit": "classa.functions.sales_order_validate",
+	"after_insert": "classa.permission.share_so"
 },
 "Material Request": {
 	"after_insert": "classa.permission.share_mr"
-}
+},
+"Stock Entry": {
+	"after_insert": "classa.permission.share_se"
+},
+"Delivery Note": {
+	"after_insert": "classa.permission.share_dn"
+},
+"Purchase Order": {
+	"after_insert": "classa.permission.share_po"
+},
+"Purchase Receipt": {
+	"after_insert": "classa.permission.share_pr"
+},
 }
 
 

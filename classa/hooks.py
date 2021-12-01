@@ -16,27 +16,36 @@ doc_events = {
 	"validate": "classa.functions.quotation_validate",
 	"before_submit": "classa.functions.quotation_submit"
 },
-"Sales Order": {
-	"before_submit": "classa.functions.sales_order_validate",
-	"after_insert": "classa.permission.share_so"
+	"Sales Invoice": {
+		"validate": "classa.functions.fetch_tax_type_from_customer"
 },
-"Material Request": {
-	"after_insert": "classa.permission.share_mr"
+	"Sales Order": {
+		"before_submit": "classa.functions.sales_order_validate",
+		"after_insert": "classa.permission.share_so"
 },
-"Stock Entry": {
-	"after_insert": "classa.permission.share_se"
+	"Material Request": {
+		"after_insert": "classa.permission.share_mr"
 },
-"Delivery Note": {
-	"after_insert": "classa.permission.share_dn"
+	"Stock Entry": {
+		"after_insert": "classa.permission.share_se"
 },
-"Purchase Order": {
-	"after_insert": "classa.permission.share_po"
+	"Delivery Note": {
+		"after_insert": "classa.permission.share_dn",
+		"validate": "classa.functions.fetch_tax_type_from_customer"
 },
-"Purchase Receipt": {
-	"after_insert": "classa.permission.share_pr"
+	"Purchase Order": {
+		"after_insert": "classa.permission.share_po"
 },
-"Payment Entry": {
-	"after_insert": "classa.permission.share_pe"
+	"Purchase Receipt": {
+		"after_insert": "classa.permission.share_pr",
+		"validate": "classa.functions.fetch_tax_type_from_supplier"
+},
+	"Purchase Invoice": {
+		"validate": "classa.functions.fetch_tax_type_from_supplier"
+},
+	"Payment Entry": {
+		"after_insert": "classa.permission.share_pe",
+		"validate": "classa.functions.validate_payment_entry"
 },
 }
 

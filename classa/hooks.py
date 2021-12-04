@@ -121,7 +121,7 @@ doc_events = {
 	"Payment Entry": {
 		"after_insert": "classa.permission.share_pe",
 		"onload": "classa.event_triggers.pe_onload",
-		"before_validate": "classa.event_triggers.piv_before_validate",
+		"before_validate": "classa.event_triggers.pe_before_validate",
 		"validate": "classa.event_triggers.pe_validate",
 		"on_submit": "classa.event_triggers.pe_on_submit",
 		"on_cancel": "classa.event_triggers.pe_on_cancel",

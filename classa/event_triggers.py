@@ -5,7 +5,6 @@ import datetime
 import json, ast
 
 
-
 ################ Quotation
 
 @frappe.whitelist()
@@ -13,25 +12,32 @@ def quot_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def quot_before_validate(doc, method=None):
-    pass
+
+    ## Make Customer Address 2 Field Mandatory If Customer Group Is Chain
+    parent_group = frappe.db.get_value("Customer Group", doc.customer_group, "parent_customer_group")
+    if (doc.customer_group == "مجموعة السلاسل" or parent_group == "مجموعة السلاسل") and not doc.customer_address_2:
+        frappe.throw("Please Select The Customer's Address")
+    if (doc.customer_group == "مجموعة السلاسل" or parent_group == "مجموعة السلاسل"):
+        doc.customer_address = doc.customer_address_2
+    if (doc.customer_group == "مجموعة التجزئة" or parent_group == "مجموعة التجزئة"):
+        doc.customer_address_2 = doc.customer_address
+
 @frappe.whitelist()
 def quot_validate(doc, method=None):
-    '''
-        for d in doc.items:
-            if not d.rate == d.price_list_rate:
-                frappe.msgprint("Row #"+str(d.idx)+": Check Price List For Item Code " + d.item_code)
+    for d in doc.items:
+        if not d.rate == d.price_list_rate:
+            frappe.msgprint("Row #"+str(d.idx)+": Check Price List For Item Code " + d.item_code)
 
-            if not d.price_list_rate:
-                frappe.throw("Row #"+str(d.idx)+": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
-        '''
+        if not d.price_list_rate:
+            frappe.throw("Row #"+str(d.idx)+": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
+
 
 @frappe.whitelist()
 def quot_on_submit(doc, method=None):
-    '''
     for d in doc.items:
         if not d.rate == d.price_list_rate and not doc.allow_price:
             frappe.throw("Row #"+str(d.idx)+": Check Price List For Item Code " + d.item_code)
-    '''
+
 
 @frappe.whitelist()
 def quot_on_cancel(doc, method=None):
@@ -58,7 +64,37 @@ def so_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def so_before_validate(doc, method=None):
-    pass
+
+    ## Fetch Vehicle Warehouse From Vehicle
+    doc.vehicle_warehouse = frappe.db.get_value("Vehicle", doc.vehicle, "warehouse")
+
+    ## Make Customer Address 2 Field Mandatory If Customer Group Is Chain
+    ## Auto Set Warehouse Based On Customer Group & Territory
+    parent_group = frappe.db.get_value("Customer Group", doc.customer_group, "parent_customer_group")
+    parent_territory = frappe.db.get_value("Territory", doc.territory, "parent_territory")
+    if (doc.customer_group == "مجموعة السلاسل" or parent_group == "مجموعة السلاسل") and not doc.customer_address_2:
+        frappe.throw("Please Select The Customer's Address")
+    if (doc.customer_group == "مجموعة السلاسل" or parent_group == "مجموعة السلاسل"):
+        doc.customer_address = doc.customer_address_2
+    if (doc.customer_group == "مجموعة التجزئة" or parent_group == "مجموعة التجزئة"):
+        doc.customer_address_2 = doc.customer_address
+    if (doc.customer_group == "مجموعة التجزئة" or parent_group == "مجموعة التجزئة") and (doc.territory == "القاهرة" or parent_territory == "القاهرة"):
+        doc.set_warehouse = "مخزن التجمع رئيسي - E"
+    if (doc.customer_group == "مجموعة السلاسل" or parent_group == "مجموعة السلاسل") and (doc.territory == "القاهرة" or parent_territory == "القاهرة"):
+        doc.set_warehouse = "مخزن بدر رئيسي - E"
+    if (doc.territory == "الاسكندرية" or parent_territory == "الاسكندرية"):
+        doc.set_warehouse = "مخزن الأسكندرية رئيسي - E"
+    if (doc.territory == "الغردقة" or parent_territory == "الغردقة"):
+        doc.set_warehouse = "مخزن الغردقة رئيسي - E"
+    if (doc.territory == "المنصورة" or parent_territory == "المنصورة"):
+        doc.set_warehouse = "مخزن المنصورة رئيسي - E"
+
+    ## Fetch Sales Persons
+    doc.sales_person = frappe.db.get_value("Address", doc.customer_address, "sales_person")
+    doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
+    doc.territory_manager = frappe.db.get_value("Customer", doc.customer, "sales_person")
+    doc.sales_manager = frappe.db.get_value("Customer Group", doc.customer_group, "sales_person")
+
 @frappe.whitelist()
 def so_validate(doc, method=None):
     for d in doc.items:
@@ -67,7 +103,10 @@ def so_validate(doc, method=None):
 
 @frappe.whitelist()
 def so_on_submit(doc, method=None):
-    pass
+
+    ## Make Vehicle Field Mandatory On Submit
+    if not doc.vehicle:
+        frappe.throw("Please Select The Vehicle")
 @frappe.whitelist()
 def so_on_cancel(doc, method=None):
     pass
@@ -92,7 +131,32 @@ def dn_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def dn_before_validate(doc, method=None):
-    pass
+    ## Fetch Driver Name and Transporter Name
+    doc.driver_name = frappe.db.get_value("Driver", doc.driver, "full_name")
+    doc.transporter_name = frappe.db.get_value("Supplier", doc.transporter, "name")
+
+    ## Fetch Vehicle From Target Warehouse
+    doc.vehicle = frappe.db.get_value("Warehouse", doc.set_warehouse, "vehicle")
+
+    ## Fetch Branch From Territory
+    doc.branch = frappe.db.get_value("Territory", doc.territory, "branch")
+
+    ## Fetch Department From Session User
+    user = frappe.session.user
+    doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
+
+    ## Fetch Cost Center From Department
+    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+
+    ## Fetch Accounting Dimensions In Items Table
+    for x in doc.items:
+        x.vehicle = doc.vehicle
+        x.territory = doc.territory
+        x.branch = doc.branch
+        x.department = doc.department
+        x.cost_center = doc.cost_center
+
+
 @frappe.whitelist()
 def dn_validate(doc, method=None):
     # fetch_tax_type_from_customer
@@ -129,7 +193,39 @@ def siv_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def siv_before_validate(doc, method=None):
-    pass
+    ##Calculate Item Rate If Supplier Tax Type Is Taxable
+    if doc.tax_type == "Commercial":
+        doc.set("taxes", [])
+        for d in doc.items:
+            item_tax_rate = frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template}, "tax_rate")
+            if item_tax_rate > 0 and d.rate <= d.price_list_rate:
+                new_rate = d.rate + (item_tax_rate * d.rate / 100)
+                d.rate = new_rate
+
+            else:
+                pass
+
+    else:
+        pass
+
+    ## Fetch Branch From Territory
+    doc.branch = frappe.db.get_value("Territory", doc.territory, "branch")
+
+    ## Fetch Department From Session User
+    user = frappe.session.user
+    doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
+
+    ## Fetch Cost Center From Department
+    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+
+    ## Fetch Accounting Dimensions In Items Table
+    for x in doc.items:
+        x.vehicle = doc.vehicle
+        x.territory = doc.territory
+        x.branch = doc.branch
+        x.department = doc.department
+        x.cost_center = doc.cost_center
+
 @frappe.whitelist()
 def siv_validate(doc, method=None):
     #fetch_tax_type_from_customer
@@ -166,11 +262,23 @@ def pe_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def pe_before_validate(doc, method=None):
-    pass
+    ## Fetch Sales Persons
+    if doc.party == "Customer":
+        ## Fetch Department From Session User
+        user = frappe.session.user
+        employee = frappe.db.get_value("Employee", {'user_id': user}, "name")
+        
+        department = frappe.db.get_value("Employee", {'user_id': user}, "department")
+        customer_group = frappe.db.get_value("Customer Group", {'department': department}, "sales_person")
+        doc.sales_person = frappe.db.get_value("Sales Person", {'employee': employee}, "name")
+        doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
+        doc.territory_manager = frappe.db.get_value("Customer", doc.party, "sales_person")
+        doc.sales_manager = frappe.db.get_value("Customer Group", {'customer_group': customer_group}, "sales_person")
+
 @frappe.whitelist()
 def pe_validate(doc, method=None):
-    customer_tax_type = frappe.db.get_value("Customer", doc.customer, "tax_type")
-    supplier_tax_type = frappe.db.get_value("Supplier", doc.supplier, "tax_type")
+    customer_tax_type = frappe.db.get_value("Customer", doc.party, "tax_type")
+    supplier_tax_type = frappe.db.get_value("Supplier", doc.party, "tax_type")
     if not doc.tax_type and doc.party_type == "Customer":
         doc.tax_type = customer_tax_type
 
@@ -179,6 +287,17 @@ def pe_validate(doc, method=None):
 
     else:
         pass
+
+    ## Fetch Sales Persons
+    if doc.party == "Customer":
+        ## Fetch Department From Session User
+        user = frappe.session.user
+        department = frappe.db.get_value("Employee", {'user_id': user}, "department")
+        customer_group = frappe.db.get_value("Customer Group", {'department': department}, "sales_person")
+        doc.sales_person = frappe.db.get_value("Sales Person", {'department': department}, "sales_person")
+        doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
+        doc.territory_manager = frappe.db.get_value("Customer", doc.party, "sales_person")
+        doc.sales_manager = frappe.db.get_value("Customer Group", {'customer_group': customer_group}, "sales_person")
 
 @frappe.whitelist()
 def pe_on_submit(doc, method=None):
@@ -303,26 +422,27 @@ def piv_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def piv_before_validate(doc, method=None):
-    pass
+    ##Calculate Item Rate If Supplier Tax Type Is Taxable
+    if doc.tax_type == "Commercial":
+        doc.set("taxes", [])
+        for d in doc.items:
+            item_tax_rate = frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template}, "tax_rate")
+            if item_tax_rate > 0 and d.rate <= d.price_list_rate:
+                new_rate = d.rate + (item_tax_rate * d.rate / 100)
+                d.rate = new_rate
+
+            else:
+                pass
+
+    else:
+        pass
+
 @frappe.whitelist()
 def piv_validate(doc, method=None):
     ##fetch_tax_type_from_Supplier
     default_tax_type = frappe.db.get_value("Supplier", doc.supplier, "tax_type")
     if not doc.tax_type:
         doc.tax_type = default_tax_type
-
-    else:
-        pass
-
-    ##Calculate Item Rate If Supplier Tax Type Is Taxable
-    if doc.tax_type == "Commercial":
-        doc.set("taxes", [])
-        for d in doc.items:
-            item_tax_rate = frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template}, "tax_rate")
-            if item_tax_rate > 0:
-                new_rate = d.rate + (item_tax_rate * d.rate / 100)
-            else:
-                pass
 
     else:
         pass
@@ -339,6 +459,7 @@ def piv_on_update_after_submit(doc, method=None):
 @frappe.whitelist()
 def piv_before_save(doc, method=None):
     pass
+
 @frappe.whitelist()
 def piv_before_cancel(doc, method=None):
     pass
@@ -413,7 +534,29 @@ def ste_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def ste_before_validate(doc, method=None):
-    pass
+
+    ## Fetch Vehcile From Target Warehouse
+    doc.vehicle = frappe.db.get_value("Warehouse", doc.to_warehouse, "vehicle")
+
+    ## Fetch Branch From Territory
+    doc.branch = frappe.db.get_value("Territory", doc.territory, "branch")
+
+    ## Fetch Department From Session User
+    user = frappe.session.user
+    doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
+
+    ## Fetch Cost Center From Department
+    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+
+    ## Fetch Accounting Dimensions In Items Table
+    for x in doc.items:
+        x.vehicle = doc.vehicle
+        x.territory = doc.territory
+        x.branch = doc.branch
+        x.department = doc.department
+        x.cost_center = doc.cost_center
+
+
 @frappe.whitelist()
 def ste_validate(doc, method=None):
     pass

@@ -22,6 +22,29 @@ def quot_before_validate(doc, method=None):
     if (doc.customer_group == "مجموعة التجزئة" or parent_group == "مجموعة التجزئة"):
         doc.customer_address_2 = doc.customer_address
 
+    ## Fetch Branch From Territory
+    doc.branch = frappe.db.get_value("Territory", doc.territory, "branch")
+
+    ## Fetch Department From Session User
+    user = frappe.session.user
+    doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
+
+    ## Fetch Cost Center From Department
+    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+
+    ## Fetch Accounting Dimensions In Taxes Table
+    for y in doc.taxes:
+        y.territory = doc.territory
+        y.branch = doc.branch
+        y.department = doc.department
+        y.cost_center = doc.cost_center
+
+    ## Fetch Price List Rate In Items Table
+    for x in doc.items:
+        x.price_list_rate = frappe.db.get_value("Item Price", {'price_list': doc.selling_price_list, 'item_code': x.item_code}, "price_list_rate")
+
+
+
 @frappe.whitelist()
 def quot_validate(doc, method=None):
     for d in doc.items:
@@ -29,7 +52,7 @@ def quot_validate(doc, method=None):
             frappe.msgprint("Row #"+str(d.idx)+": Check Price List For Item Code " + d.item_code)
 
         if not d.price_list_rate:
-            frappe.throw("Row #"+str(d.idx)+": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
+            frappe.msgprint("Row #"+str(d.idx)+": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
 
 
 @frappe.whitelist()
@@ -37,6 +60,9 @@ def quot_on_submit(doc, method=None):
     for d in doc.items:
         if not d.rate == d.price_list_rate and not doc.allow_price:
             frappe.throw("Row #"+str(d.idx)+": Check Price List For Item Code " + d.item_code)
+
+        if not d.price_list_rate:
+            frappe.throw("Row #"+str(d.idx)+": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
 
 
 @frappe.whitelist()
@@ -79,21 +105,39 @@ def so_before_validate(doc, method=None):
     if (doc.customer_group == "مجموعة التجزئة" or parent_group == "مجموعة التجزئة"):
         doc.customer_address_2 = doc.customer_address
     if (doc.customer_group == "مجموعة التجزئة" or parent_group == "مجموعة التجزئة") and (doc.territory == "القاهرة" or parent_territory == "القاهرة"):
-        doc.set_warehouse = "مخزن التجمع رئيسي - E"
+        doc.set_warehouse = "مخزن التجمع رئيسي - CA"
     if (doc.customer_group == "مجموعة السلاسل" or parent_group == "مجموعة السلاسل") and (doc.territory == "القاهرة" or parent_territory == "القاهرة"):
-        doc.set_warehouse = "مخزن بدر رئيسي - E"
+        doc.set_warehouse = "مخزن بدر رئيسي - CA"
     if (doc.territory == "الاسكندرية" or parent_territory == "الاسكندرية"):
-        doc.set_warehouse = "مخزن الأسكندرية رئيسي - E"
+        doc.set_warehouse = "مخزن الأسكندرية رئيسي - CA"
     if (doc.territory == "الغردقة" or parent_territory == "الغردقة"):
-        doc.set_warehouse = "مخزن الغردقة رئيسي - E"
+        doc.set_warehouse = "مخزن الغردقة رئيسي - CA"
     if (doc.territory == "المنصورة" or parent_territory == "المنصورة"):
-        doc.set_warehouse = "مخزن المنصورة رئيسي - E"
+        doc.set_warehouse = "مخزن المنصورة رئيسي - CA"
 
     ## Fetch Sales Persons
     doc.sales_person = frappe.db.get_value("Address", doc.customer_address, "sales_person")
     doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
     doc.territory_manager = frappe.db.get_value("Customer", doc.customer, "sales_person")
     doc.sales_manager = frappe.db.get_value("Customer Group", doc.customer_group, "sales_person")
+
+    ## Fetch Branch From Territory
+    doc.branch = frappe.db.get_value("Territory", doc.territory, "branch")
+
+    ## Fetch Department From Session User
+    user = frappe.session.user
+    doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
+
+    ## Fetch Cost Center From Department
+    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+
+    ## Fetch Accounting Dimensions In Taxes Table
+    for y in doc.taxes:
+        y.vehicle = doc.vehicle
+        y.territory = doc.territory
+        y.branch = doc.branch
+        y.department = doc.department
+        y.cost_center = doc.cost_center
 
 @frappe.whitelist()
 def so_validate(doc, method=None):
@@ -107,6 +151,7 @@ def so_on_submit(doc, method=None):
     ## Make Vehicle Field Mandatory On Submit
     if not doc.vehicle:
         frappe.throw("Please Select The Vehicle")
+
 @frappe.whitelist()
 def so_on_cancel(doc, method=None):
     pass
@@ -155,6 +200,14 @@ def dn_before_validate(doc, method=None):
         x.branch = doc.branch
         x.department = doc.department
         x.cost_center = doc.cost_center
+
+    ## Fetch Accounting Dimensions In Taxes Table
+    for y in doc.taxes:
+        y.vehicle = doc.vehicle
+        y.territory = doc.territory
+        y.branch = doc.branch
+        y.department = doc.department
+        y.cost_center = doc.cost_center
 
 
 @frappe.whitelist()
@@ -208,6 +261,12 @@ def siv_before_validate(doc, method=None):
     else:
         pass
 
+    ## Fetch Sales Persons
+    doc.sales_person = frappe.db.get_value("Address", doc.customer_address, "sales_person")
+    doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
+    doc.territory_manager = frappe.db.get_value("Customer", doc.customer, "sales_person")
+    doc.sales_manager = frappe.db.get_value("Customer Group", doc.customer_group, "sales_person")
+
     ## Fetch Branch From Territory
     doc.branch = frappe.db.get_value("Territory", doc.territory, "branch")
 
@@ -225,6 +284,14 @@ def siv_before_validate(doc, method=None):
         x.branch = doc.branch
         x.department = doc.department
         x.cost_center = doc.cost_center
+
+    ## Fetch Accounting Dimensions In Taxes Table
+    for y in doc.taxes:
+        y.vehicle = doc.vehicle
+        y.territory = doc.territory
+        y.branch = doc.branch
+        y.department = doc.department
+        y.cost_center = doc.cost_center
 
 @frappe.whitelist()
 def siv_validate(doc, method=None):
@@ -263,17 +330,38 @@ def pe_onload(doc, method=None):
 @frappe.whitelist()
 def pe_before_validate(doc, method=None):
     ## Fetch Sales Persons
-    if doc.party == "Customer":
-        ## Fetch Department From Session User
+    if doc.party_type == "Customer":
         user = frappe.session.user
         employee = frappe.db.get_value("Employee", {'user_id': user}, "name")
-        
-        department = frappe.db.get_value("Employee", {'user_id': user}, "department")
-        customer_group = frappe.db.get_value("Customer Group", {'department': department}, "sales_person")
+        customer_group = frappe.db.get_value("Customer", doc.party, "customer_group")
         doc.sales_person = frappe.db.get_value("Sales Person", {'employee': employee}, "name")
         doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
         doc.territory_manager = frappe.db.get_value("Customer", doc.party, "sales_person")
-        doc.sales_manager = frappe.db.get_value("Customer Group", {'customer_group': customer_group}, "sales_person")
+        doc.sales_manager = frappe.db.get_value("Customer Group", customer_group, "sales_person")
+
+    ## Fetch Territory From Customer
+    doc.territory = frappe.db.get_value("Customer", doc.party, "territory")
+
+    ## Fetch Branch From Territory
+    doc.branch = frappe.db.get_value("Territory", doc.territory, "branch")
+
+    ## Fetch Department From Session User
+    user = frappe.session.user
+    doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
+
+    ## Fetch Cost Center From Department
+    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+
+    ## Fetch Accounting Dimensions In Taxes Table
+    for x in doc.taxes:
+        x.cost_center = doc.cost_center
+
+    ## Fetch Accounting Dimensions In Taxes Table
+    for y in doc.deductions:
+        y.territory = doc.territory
+        y.branch = doc.branch
+        y.department = doc.department
+        y.cost_center = doc.cost_center
 
 @frappe.whitelist()
 def pe_validate(doc, method=None):
@@ -288,16 +376,6 @@ def pe_validate(doc, method=None):
     else:
         pass
 
-    ## Fetch Sales Persons
-    if doc.party == "Customer":
-        ## Fetch Department From Session User
-        user = frappe.session.user
-        department = frappe.db.get_value("Employee", {'user_id': user}, "department")
-        customer_group = frappe.db.get_value("Customer Group", {'department': department}, "sales_person")
-        doc.sales_person = frappe.db.get_value("Sales Person", {'department': department}, "sales_person")
-        doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
-        doc.territory_manager = frappe.db.get_value("Customer", doc.party, "sales_person")
-        doc.sales_manager = frappe.db.get_value("Customer Group", {'customer_group': customer_group}, "sales_person")
 
 @frappe.whitelist()
 def pe_on_submit(doc, method=None):
@@ -534,7 +612,6 @@ def ste_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def ste_before_validate(doc, method=None):
-
     ## Fetch Vehcile From Target Warehouse
     doc.vehicle = frappe.db.get_value("Warehouse", doc.to_warehouse, "vehicle")
 
@@ -555,7 +632,6 @@ def ste_before_validate(doc, method=None):
         x.branch = doc.branch
         x.department = doc.department
         x.cost_center = doc.cost_center
-
 
 @frappe.whitelist()
 def ste_validate(doc, method=None):

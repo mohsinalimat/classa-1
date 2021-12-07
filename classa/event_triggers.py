@@ -29,8 +29,8 @@ def quot_before_validate(doc, method=None):
     user = frappe.session.user
     doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
 
-    ## Fetch Cost Center From Department
-    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+    ## Fetch Cost Center From Customer Group
+    doc.cost_center = frappe.db.get_value("Customer Group", doc.customer_group, "cost_center")
 
     ## Fetch Accounting Dimensions In Taxes Table
     for y in doc.taxes:
@@ -128,8 +128,8 @@ def so_before_validate(doc, method=None):
     user = frappe.session.user
     doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
 
-    ## Fetch Cost Center From Department
-    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+    ## Fetch Cost Center From Customer Group
+    doc.cost_center = frappe.db.get_value("Customer Group", doc.customer_group, "cost_center")
 
     ## Fetch Accounting Dimensions In Taxes Table
     for y in doc.taxes:
@@ -190,8 +190,9 @@ def dn_before_validate(doc, method=None):
     user = frappe.session.user
     doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
 
-    ## Fetch Cost Center From Department
-    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+    ## Fetch Cost Center From Customer Group
+    customer_group = frappe.db.get_value("Customer", doc.customer, "customer_group")
+    doc.cost_center = frappe.db.get_value("Customer Group", customer_group, "cost_center")
 
     ## Fetch Accounting Dimensions In Items Table
     for x in doc.items:
@@ -274,8 +275,8 @@ def siv_before_validate(doc, method=None):
     user = frappe.session.user
     doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
 
-    ## Fetch Cost Center From Department
-    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+    ## Fetch Cost Center From Customer Group
+    doc.cost_center = frappe.db.get_value("Customer Group", doc.customer_group, "cost_center")
 
     ## Fetch Accounting Dimensions In Items Table
     for x in doc.items:
@@ -349,8 +350,9 @@ def pe_before_validate(doc, method=None):
     user = frappe.session.user
     doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
 
-    ## Fetch Cost Center From Department
-    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+    ## Fetch Cost Center From Customer Group
+    customer_group = frappe.db.get_value("Customer", doc.party, "customer_group")
+    doc.cost_center = frappe.db.get_value("Customer Group", customer_group, "cost_center")
 
     ## Fetch Accounting Dimensions In Taxes Table
     for x in doc.taxes:
@@ -622,8 +624,10 @@ def ste_before_validate(doc, method=None):
     user = frappe.session.user
     doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
 
-    ## Fetch Cost Center From Department
-    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+    ## Fetch Cost Center From Customer Group
+    if doc.customer:
+        customer_group = frappe.db.get_value("Customer", doc.party, "customer_group")
+        doc.cost_center = frappe.db.get_value("Customer Group", customer_group, "cost_center")
 
     ## Fetch Accounting Dimensions In Items Table
     for x in doc.items:

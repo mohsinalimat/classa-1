@@ -19,7 +19,7 @@ def share_mr(doc, method=None):
 
     if doc.set_warehouse:
         users = frappe.db.sql(
-            """ select user from `tabDocShare` where share_doctype = 'Warehouse' and share_name = '{from_warehouse}' """.format(
+        """ select user from `tabDocShare` where share_doctype = 'Warehouse' and share_name = '{from_warehouse}' """.format(
                 from_warehouse=doc.set_warehouse), as_dict=1)
         read = 1
         write = 1

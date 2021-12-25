@@ -141,12 +141,24 @@ def so_before_validate(doc, method=None):
 
 @frappe.whitelist()
 def so_validate(doc, method=None):
-    for d in doc.items:
-        if not d.rate == d.price_list_rate and not doc.allow_price:
-            frappe.throw("Row #" + str(d.idx) + ": Check Price List For Item Code " + d.item_code)
+    pass
 
 @frappe.whitelist()
 def so_on_submit(doc, method=None):
+    for d in doc.items:
+        has_pricing_rule = frappe.db.get_list('Pricing Rule Item Code', filters={'item_code': d.item_code}, fields=['parent'])
+
+        if has_pricing_rule and (not d.rate == d.price_list_rate):
+            pass
+
+        if doc.allow_price and (not d.rate == d.price_list_rate):
+            pass
+
+        if not d.rate == d.price_list_rate and not doc.allow_price and not has_pricing_rule:
+            frappe.throw("Row #" + str(d.idx) + ": Check Price List For Item Code " + d.item_code)
+
+        if d.qty > d.actual_qty:
+           frappe.throw("Row #"+ str(d.idx) +": Ordered Qty Is More Than Available Qty For Item " + d.item_code)
 
     ## Make Vehicle Field Mandatory On Submit
     if not doc.vehicle:
@@ -326,6 +338,30 @@ def siv_on_update(doc, method=None):
 ################ Payment Entry
 
 @frappe.whitelist()
+def pe_before_insert(doc, method=None):
+    receivable_account = frappe.db.get_value("Company", doc.company, "default_receivable_account")
+    payable_account = frappe.db.get_value("Company", doc.company, "default_payable_account")
+    mode_of_payment_account = frappe.db.get_value("Mode of Payment Account", {'parent': doc.mode_of_payment},
+                                                  'default_account')
+    mode_of_payment_account_2 = frappe.db.get_value("Mode of Payment Account", {'parent': doc.mode_of_payment_2},
+                                                    'default_account')
+    doc.received_amount = doc.paid_amount
+    doc.reference_date = doc.posting_date
+
+    if doc.payment_type == "Receive" and doc.party_type == "Customer":
+        doc.paid_from = receivable_account
+        doc.paid_to = mode_of_payment_account
+
+    if doc.payment_type == "Pay" and doc.party_type == "Supplier":
+        doc.paid_from = mode_of_payment_account
+        doc.paid_to = payable_account
+
+    #if doc.payment_type == "Internal Transfer":
+    #    doc.paid_from = mode_of_payment_account
+    #    doc.paid_to = mode_of_payment_account_2
+
+
+@frappe.whitelist()
 def pe_onload(doc, method=None):
     pass
 @frappe.whitelist()
@@ -435,7 +471,19 @@ def po_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def po_before_validate(doc, method=None):
-    pass
+    ## Fetch Cost Center From Supplier Group
+    supplier_group = frappe.db.get_value("Supplier", doc.supplier, "supplier_group")
+    cost_center = frappe.db.get_value("Supplier Group", supplier_group, "cost_center")
+
+    ## Fetch Department From Session User
+    user = frappe.session.user
+    department = frappe.db.get_value("Employee", {'user_id': user}, "department")
+
+    ## Fetch Accounting Dimensions In Items Table
+    for y in doc.items:
+        y.department = department
+        y.cost_center = cost_center
+
 @frappe.whitelist()
 def po_validate(doc, method=None):
     pass
@@ -502,7 +550,7 @@ def piv_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def piv_before_validate(doc, method=None):
-    ##Calculate Item Rate If Supplier Tax Type Is Taxable
+    ## Calculate Item Rate If Supplier Tax Type Is Taxable
     if doc.tax_type == "Commercial":
         doc.set("taxes", [])
         for d in doc.items:
@@ -516,6 +564,19 @@ def piv_before_validate(doc, method=None):
 
     else:
         pass
+
+    ## Fetch Cost Center From Supplier Group
+    supplier_group = frappe.db.get_value("Supplier", doc.supplier, "supplier_group")
+    doc.cost_center = frappe.db.get_value("Supplier Group", supplier_group, "cost_center")
+
+    ## Fetch Department From Session User
+    user = frappe.session.user
+    doc.department = frappe.db.get_value("Employee", {'user_id': user}, "department")
+
+    ## Fetch Accounting Dimensions In Items Table
+    for y in doc.items:
+        y.department = doc.department
+        y.cost_center = doc.cost_center
 
 @frappe.whitelist()
 def piv_validate(doc, method=None):
@@ -584,7 +645,29 @@ def excl_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def excl_before_validate(doc, method=None):
-    pass
+    ## Fetch Vehicle From Vehicle Log
+    doc.vehicle = frappe.db.get_value("Vehicle Log", doc.vehicle_log, "name")
+
+    ## Fetch Cost Center From Department
+    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+
+    ## Fetch Accounting Dimensions In Expenses Table
+    for x in doc.expenses:
+        x.vehicle = doc.vehicle
+        x.territory = doc.territory
+        x.branch = doc.branch
+        x.department = doc.department
+        x.cost_center = doc.cost_center
+
+    ## Fetch Accounting Dimensions In Taxes Table
+    for y in doc.taxes:
+        y.vehicle = doc.vehicle
+        y.territory = doc.territory
+        y.branch = doc.branch
+        y.department = doc.department
+        y.cost_center = doc.cost_center
+
+
 @frappe.whitelist()
 def excl_validate(doc, method=None):
     pass

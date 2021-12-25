@@ -119,6 +119,7 @@ doc_events = {
 		"on_update": "classa.event_triggers.piv_on_update",
 },
 	"Payment Entry": {
+		"before_insert": "classa.event_triggers.pe_before_insert",
 		"after_insert": "classa.permission.share_pe",
 		"onload": "classa.event_triggers.pe_onload",
 		"before_validate": "classa.event_triggers.pe_before_validate",

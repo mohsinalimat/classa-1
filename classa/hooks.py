@@ -24,6 +24,7 @@ doc_events = {
 	"on_update": "classa.event_triggers.quot_on_update",
 },
 	"Sales Invoice": {
+	"after_insert": "classa.permission.share_sin",
 	"onload": "classa.event_triggers.siv_onload",
 	"before_validate": "classa.event_triggers.siv_before_validate",
 	"validate": "classa.event_triggers.siv_validate",
@@ -163,6 +164,17 @@ doc_events = {
 		"before_save": "classa.event_triggers.emad_before_save",
 		"before_cancel": "classa.event_triggers.emad_before_cancel",
 		"on_update": "classa.event_triggers.emad_on_update",
+},
+"Loan": {
+		"onload": "classa.event_triggers.loan_onload",
+		"before_validate": "classa.event_triggers.loan_before_validate",
+		"validate": "classa.event_triggers.loan_validate",
+		"on_submit": "classa.event_triggers.loan_on_submit",
+		"on_cancel": "classa.event_triggers.loan_on_cancel",
+		"on_update_after_submit": "classa.event_triggers.loan_on_update_after_submit",
+		"before_save": "classa.event_triggers.loan_before_save",
+		"before_cancel": "classa.event_triggers.loan_before_cancel",
+		"on_update": "classa.event_triggers.loan_on_update",
 },
 }
 

@@ -10,7 +10,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "json": "{}",
- "modified": "2021-11-30 15:12:20.230613",
+ "modified": "2022-01-09 12:08:36.885665",
  "modified_by": "Administrator",
  "module": "Classa",
  "name": "Stock Ledgers",
@@ -22,6 +22,9 @@
  "roles": [
   {
    "role": "System Manager"
+  },
+  {
+   "role": "Stock Auditor"
   }
  ]
 }

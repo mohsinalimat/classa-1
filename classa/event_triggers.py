@@ -15,6 +15,11 @@ def quot_onload(doc, method=None):
 @frappe.whitelist()
 def quot_before_validate(doc, method=None):
     doc.ignore_pricing_rule = 0
+    
+    for t in doc.items:
+        allowed_uom =frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code,'uom': t.uom}, ['uom'])
+        if allowed_uom != t.uom:
+            frappe.throw("Row #" + str(t.idx) + ": وحدة القياس غير معرفة للصنف " + t.item_code)
 
     ## Make Customer Address 2 Field Mandatory If Customer Group Is Chain
     parent_group = frappe.db.get_value("Customer Group", doc.customer_group, "parent_customer_group")
@@ -192,6 +197,11 @@ def so_before_validate(doc, method=None):
     doc.disable_rounded_total = 0
     ## Fetch Vehicle Warehouse From Vehicle
     doc.vehicle_warehouse = frappe.db.get_value("Vehicle", doc.vehicle, "warehouse")
+
+    for t in doc.items:
+        allowed_uom =frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code,'uom': t.uom}, ['uom'])
+        if allowed_uom != t.uom:
+            frappe.throw("Row #" + str(t.idx) + ": وحدة القياس غير معرفة للصنف " + t.item_code)
 
     ## Make Customer Address 2 Field Mandatory If Customer Group Is Chain
     ## Auto Set Warehouse Based On Customer Group & Territory
@@ -557,6 +567,16 @@ def dn_onload(doc, method=None):
 def dn_before_validate(doc, method=None):
     doc.ignore_pricing_rule = 0
 
+    if doc.customer == "عميل مسحوبات عاملين" and not doc.sell_to_employees:
+        frappe.throw("برجاء تحديد الموظف")
+
+
+    for t in doc.items:
+        allowed_uom =frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code,'uom': t.uom}, ['uom'])
+        if allowed_uom != t.uom:
+            frappe.throw("Row #" + str(t.idx) + ": وحدة القياس غير معرفة للصنف " + t.item_code)
+
+
     ## Fetch Driver Name and Transporter Name
     doc.driver_name = frappe.db.get_value("Driver", doc.driver, "full_name")
     doc.transporter_name = frappe.db.get_value("Supplier", doc.transporter, "name")
@@ -719,6 +739,7 @@ def siv_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def siv_before_validate(doc, method=None):
+
     #doc.ignore_pricing_rule = 0
     #doc.update_stock = 1
     #if doc.tax_type == "Taxable":
@@ -726,6 +747,17 @@ def siv_before_validate(doc, method=None):
 
     ## Fetch Sales Persons
     #doc.sales_person = frappe.db.get_value("Address", doc.customer_address, "sales_person")
+    if not doc.delivery_note and not doc.update_stock and not doc.not_stock:
+        frappe.throw("برجاء تحديد المخزن المسحوب منه حيث ان الفاتورة غير مربوطة باذن تسليم للعميل")
+
+    if doc.customer == "عميل مسحوبات عاملين" and not doc.sell_to_employees:
+        frappe.throw("برجاء تحديد الموظف")
+
+    for t in doc.items:
+        allowed_uom =frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code,'uom': t.uom}, ['uom'])
+        if allowed_uom != t.uom:
+            frappe.throw("Row #" + str(t.idx) + ": وحدة القياس غير معرفة للصنف " + t.item_code)
+
     doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
     doc.territory_manager = frappe.db.get_value("Customer", doc.customer, "sales_person")
     doc.sales_manager = frappe.db.get_value("Customer Group", doc.customer_group, "sales_person")
@@ -810,6 +842,7 @@ def siv_before_validate(doc, method=None):
             doc.rounded_total = totals - doc.discount_amount
             doc.base_rounded_total = totals - doc.discount_amount
             doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),doc.currency)
+            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals - doc.discount_amount
             doc.net_total = totals - doc.discount_amount
             doc.base_net_total = totals - doc.discount_amount
@@ -823,6 +856,7 @@ def siv_before_validate(doc, method=None):
             doc.rounded_total = totals
             doc.base_rounded_total = totals
             doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),doc.currency)
+            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals
             doc.net_total = totals
             doc.base_net_total = totals
@@ -897,7 +931,7 @@ def siv_validate(doc, method=None):
     ## Remove Returned Qty From Sales Invoice
     for p in doc.items:
         if p.dn_detail:
-            qty_del = qty = frappe.db.get_value("Delivery Note Item", {'name': p.dn_detail}, "qty")
+            qty_del = frappe.db.get_value("Delivery Note Item", {'name': p.dn_detail}, "qty")
             qty = frappe.db.get_value("Delivery Note Item", {'name': p.dn_detail}, "returned_qty")
             convert_factor = frappe.db.get_value("Delivery Note Item", {'name': p.dn_detail}, "conversion_factor")
             if qty > 0:
@@ -954,6 +988,7 @@ def siv_validate(doc, method=None):
             doc.rounded_total = totals - doc.discount_amount
             doc.base_rounded_total = totals - doc.discount_amount
             doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),doc.currency)
+            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals - doc.discount_amount
             doc.net_total = totals - doc.discount_amount
             doc.base_net_total = totals - doc.discount_amount
@@ -967,6 +1002,7 @@ def siv_validate(doc, method=None):
             doc.rounded_total = totals
             doc.base_rounded_total = totals
             doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),doc.currency)
+            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals
             doc.net_total = totals
             doc.base_net_total = totals
@@ -1022,6 +1058,7 @@ def siv_on_submit(doc, method=None):
             doc.rounded_total = totals - doc.discount_amount
             doc.base_rounded_total = totals - doc.discount_amount
             doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),doc.currency)
+            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals - doc.discount_amount
             doc.net_total = totals - doc.discount_amount
             doc.base_net_total = totals - doc.discount_amount
@@ -1035,6 +1072,7 @@ def siv_on_submit(doc, method=None):
             doc.rounded_total = totals
             doc.base_rounded_total = totals
             doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
+            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals
             doc.net_total = totals
             doc.base_net_total = totals
@@ -1042,7 +1080,7 @@ def siv_on_submit(doc, method=None):
             doc.outstanding_amount = totals
             doc.total_taxes_and_charges = 0
 
-    if doc.sell_to_employees:
+    if doc.sell_to_employees and doc.is_return == 0:
         references = [
             {
                 "doctype": "Payment Entry Reference",
@@ -1061,8 +1099,8 @@ def siv_on_submit(doc, method=None):
             "paid_to": "1321 - تسوية مشتريات عاملين - CA",
             "party_type": "Customer",
             "party": doc.customer,
-            "paid_amount": doc.grand_total,
-            "received_amount": doc.grand_total,
+            "paid_amount": doc.net_total,
+            "received_amount": doc.net_total,
             "reference_date": doc.posting_date,
             "source_exchange_rate": 1,
             "target_exchange_rate": 1,
@@ -1078,9 +1116,10 @@ def siv_on_submit(doc, method=None):
         new_doc.repay_from_salary = 1
         new_doc.repayment_start_date = doc.posting_date
         new_doc.loan_type = 'مشتريات'
-        new_doc.loan_amount = doc.grand_total
+        new_doc.loan_amount = doc.net_total
         new_doc.repayment_method = 'Repay Fixed Amount per Period'
-        new_doc.monthly_repayment_amount = doc.grand_total
+        new_doc.invoice = doc.name
+        new_doc.monthly_repayment_amount = doc.net_total
         new_doc.insert(ignore_permissions=True)
         new_doc.submit()
 
@@ -1100,10 +1139,30 @@ def siv_on_submit(doc, method=None):
             new_doc.submit()
         '''
 
+    if doc.sell_to_employees and doc.is_return == 1 and doc.return_against:
+        loan = frappe.get_doc('Loan', {'invoice': doc.return_against})
+        repayment = frappe.new_doc('Loan Repayment')
+        repayment.against_loan = loan.name
+        repayment.applicant_type = "Employee"
+        repayment.applicant = loan.applicant
+        repayment.posting_date = doc.posting_date
+        repayment.amount_paid = -1 * doc.grand_total
+        repayment.insert(ignore_permissions=True)
+        repayment.submit()
+
 
 @frappe.whitelist()
 def siv_on_cancel(doc, method=None):
     pass
+    #if doc.sell_to_employees:
+        #pe_name = frappe.db.sql(""" select parent as parent from `tabPayment Entry Reference` where reference_name = '{invoice}' """.format(invoice=doc.name),as_dict=1)
+        #for g in pe_name :
+        #    pe = frappe.get_doc('Payment Entry', g.parent)
+        #    frappe.throw(pe)
+        #loan = frappe.db.get_value('Loan', {'invoice': doc.name}, ['name'])
+        #loan1 = frappe.get_doc('Loan', loan) 
+        #loan1.cancel()  
+
 @frappe.whitelist()
 def siv_on_update_after_submit(doc, method=None):
     pass
@@ -1116,6 +1175,7 @@ def siv_before_cancel(doc, method=None):
 @frappe.whitelist()
 def siv_on_update(doc, method=None):
     pass
+
 
 
 ################ Payment Entry
@@ -1139,9 +1199,9 @@ def pe_before_validate(doc, method=None):
         employee = frappe.db.get_value("Employee", {'user_id': user}, "name")
         customer_group = frappe.db.get_value("Customer", doc.party, "customer_group")
         current_sales_person = frappe.db.get_value("Sales Person", {'employee': employee}, "name")
-        if current_sales_person:
-            doc.sales_person = current_sales_person
-        elif not current_sales_person and not doc.sales_person and doc.mode_of_payment != "مشتريات عاملين":
+        #if current_sales_person:
+            #doc.sales_person = current_sales_person
+        if not current_sales_person and not doc.sales_person and doc.mode_of_payment != "مشتريات عاملين":
             #frappe.throw(" قم باختيار مندوب البيع")
             pass
         doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
@@ -1384,6 +1444,34 @@ def po_before_validate(doc, method=None):
         taxes1.account_head = "2301 - ضريبة القيمة المضافة VAT - CA"
         taxes1.description = "2301 - ضريبة القيمة المضافة VAT"
 
+
+        if doc.ci_profits == "1%":
+            taxes2 = doc.append("taxes", {})
+            taxes2.category = "Total"
+            taxes2.add_deduct_tax = "Deduct"
+            taxes2.charge_type = "On Net Total"
+            taxes2.rate = 1
+            taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
+            taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
+
+        if doc.ci_profits == "3%":
+            taxes2 = doc.append("taxes", {})
+            taxes2.category = "Total"
+            taxes2.add_deduct_tax = "Deduct"
+            taxes2.charge_type = "On Net Total"
+            taxes2.rate = 3
+            taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
+            taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
+
+        if doc.ci_profits == "5%":
+            taxes2 = doc.append("taxes", {})
+            taxes2.category = "Total"
+            taxes2.add_deduct_tax = "Deduct"
+            taxes2.charge_type = "On Net Total"
+            taxes2.rate = 5
+            taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
+            taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
+
 @frappe.whitelist()
 def po_validate(doc, method=None):
     pass
@@ -1497,6 +1585,35 @@ def pr_before_validate(doc, method=None):
         taxes1.charge_type = "On Net Total"
         taxes1.account_head = "2301 - ضريبة القيمة المضافة VAT - CA"
         taxes1.description = "2301 - ضريبة القيمة المضافة VAT"
+
+
+        if doc.ci_profits == "1%":
+            taxes2 = doc.append("taxes", {})
+            taxes2.category = "Total"
+            taxes2.add_deduct_tax = "Deduct"
+            taxes2.charge_type = "On Net Total"
+            taxes2.rate = 1
+            taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
+            taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
+
+        if doc.ci_profits == "3%":
+            taxes2 = doc.append("taxes", {})
+            taxes2.category = "Total"
+            taxes2.add_deduct_tax = "Deduct"
+            taxes2.charge_type = "On Net Total"
+            taxes2.rate = 3
+            taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
+            taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
+
+        if doc.ci_profits == "5%":
+            taxes2 = doc.append("taxes", {})
+            taxes2.category = "Total"
+            taxes2.add_deduct_tax = "Deduct"
+            taxes2.charge_type = "On Net Total"
+            taxes2.rate = 5
+            taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
+            taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
+            
 @frappe.whitelist()
 def pr_validate(doc, method=None):
     pass
@@ -1629,6 +1746,34 @@ def piv_before_validate(doc, method=None):
         taxes1.charge_type = "On Net Total"
         taxes1.account_head = "2301 - ضريبة القيمة المضافة VAT - CA"
         taxes1.description = "2301 - ضريبة القيمة المضافة VAT"
+
+        if doc.ci_profits == "1%":
+            taxes2 = doc.append("taxes", {})
+            taxes2.category = "Total"
+            taxes2.add_deduct_tax = "Deduct"
+            taxes2.charge_type = "On Net Total"
+            taxes2.rate = 1
+            taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
+            taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
+
+        if doc.ci_profits == "3%":
+            taxes2 = doc.append("taxes", {})
+            taxes2.category = "Total"
+            taxes2.add_deduct_tax = "Deduct"
+            taxes2.charge_type = "On Net Total"
+            taxes2.rate = 3
+            taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
+            taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
+
+        if doc.ci_profits == "5%":
+            taxes2 = doc.append("taxes", {})
+            taxes2.category = "Total"
+            taxes2.add_deduct_tax = "Deduct"
+            taxes2.charge_type = "On Net Total"
+            taxes2.rate = 5
+            taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
+            taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
+
 
     ## Fetch Cost Center From Supplier Group
     supplier_group = frappe.db.get_value("Supplier", doc.supplier, "supplier_group")
@@ -1768,7 +1913,7 @@ def excl_before_validate(doc, method=None):
     doc.vehicle = frappe.db.get_value("Vehicle Log", doc.vehicle_log, "license_plate")
 
     ## Fetch Cost Center From Department
-    doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+    #doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
 
     ## Fetch Accounting Dimensions In Expenses Table
     for x in doc.expenses:
@@ -1776,7 +1921,6 @@ def excl_before_validate(doc, method=None):
         x.territory = doc.territory
         x.branch = doc.branch
         x.department = doc.department
-        x.cost_center = doc.cost_center
 
     ## Fetch Accounting Dimensions In Taxes Table
     for y in doc.taxes:
@@ -1784,7 +1928,6 @@ def excl_before_validate(doc, method=None):
         y.territory = doc.territory
         y.branch = doc.branch
         y.department = doc.department
-        y.cost_center = doc.cost_center
 
 
 @frappe.whitelist()
@@ -1817,6 +1960,10 @@ def ste_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def ste_before_validate(doc, method=None):
+    for t in doc.items:
+        allowed_uom =frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code,'uom': t.uom}, ['uom'])
+        if allowed_uom != t.uom:
+            frappe.throw("Row #" + str(t.idx) + ": وحدة القياس غير معرفة للصنف " + t.item_code)
 
     if doc.sales_order:
         so = frappe.get_doc("Sales Order", doc.sales_order)
@@ -1934,7 +2081,11 @@ def loan_on_submit(doc, method=None):
     pass
 @frappe.whitelist()
 def loan_on_cancel(doc, method=None):
+    #ld =  frappe.db.get_value('Loan Disbursement', {'against_loan': doc.name}, ['name'])    
+    #ld1 = frappe.get_doc('Loan Disbursement',ld)
+    #ld1.cancel()  
     pass
+     
 @frappe.whitelist()
 def loan_on_update_after_submit(doc, method=None):
     pass

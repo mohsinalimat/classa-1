@@ -12,7 +12,7 @@ def share_mr(doc, method=None):
         users = frappe.db.sql(""" select user from `tabDocShare` where share_doctype = 'Warehouse' and share_name = '{from_warehouse}' """.format(from_warehouse=doc.set_from_warehouse),as_dict=1)
         read = 1
         write = 1
-        submit = 0
+        submit = 1
         share = 1
         everyone = 0
         for x in users:
@@ -24,7 +24,7 @@ def share_mr(doc, method=None):
                 from_warehouse=doc.set_warehouse), as_dict=1)
         read = 1
         write = 1
-        submit = 0
+        submit = 1
         share = 1
         everyone = 0
         for x in users:

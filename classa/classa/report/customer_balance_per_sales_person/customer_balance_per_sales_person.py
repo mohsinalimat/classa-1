@@ -103,11 +103,11 @@ def get_item_price_qty_data(filters):
                         `tabCustomer`.code as code,
                         
                         ifnull((select sum(debit) from `tabGL Entry` where party='{customer_list}' 
-                        and voucher_type != 'Sales Invoice' and docstatus = 1 
+                        and voucher_type not in  ('Sales Invoice','Payment Entry') and docstatus = 1 
                         and posting_date between '{from_date}' and '{to_date}'),0) as tdebit,
                         
                         ifnull((select sum(credit) from `tabGL Entry` where party='{customer_list}' 
-                        and voucher_type != 'Sales Invoice' and docstatus = 1 
+                        and voucher_type not in  ('Sales Invoice','Payment Entry')  and docstatus = 1 
                         and posting_date between '{from_date}' and '{to_date}'),0) as tcredit,
                         
                         IFNULL((select sum(base_grand_total) 

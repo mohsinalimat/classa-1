@@ -95,6 +95,7 @@ def get_item_price_qty_data(filters):
 				IFNULL((select sum(paid_amount) 
 				from `tabPayment Entry`
 				where `tabPayment Entry`.docstatus = 1
+				and `tabPayment Entry`.payment_type = "Receive"
 				and `tabPayment Entry`.posting_date between '{from_date}' and '{to_date}'
 				and `tabPayment Entry`.sales_person = `tabSales Person`.name),0) as payment_entries,
 				

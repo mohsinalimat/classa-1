@@ -178,6 +178,16 @@ doc_events = {
 },
 }
 
+scheduler_events = {
+	"all": [
+		"classa.functions.all_event",
+	],
+	"hourly": [
+		"classa.functions.hourly_event"
+	],
+}
+
+
 
 # Includes in <head>
 # ------------------

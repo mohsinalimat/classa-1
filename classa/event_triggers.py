@@ -1366,7 +1366,7 @@ def po_before_validate(doc, method=None):
         doc.tax_type = default_tax_type
 
     ## Calculate Item Rate If Supplier Tax Type Is Commercial
-    if doc.tax_type == "Commercial":
+    if doc.tax_type == "Commercial" and doc.purchase_request_type != "Imported":
         doc.set("taxes", [])
         for d in doc.items:
             if d.item_tax_template:
@@ -1507,7 +1507,7 @@ def pr_before_validate(doc, method=None):
         doc.tax_type = default_tax_type
 
     ## Calculate Item Rate If Supplier Tax Type Is Commercial
-    if doc.tax_type == "Commercial":
+    if doc.tax_type == "Commercial" and doc.purchase_request_type != "Imported":
         doc.set("taxes", [])
         for d in doc.items:
             if d.item_tax_template:
@@ -1668,7 +1668,7 @@ def piv_before_validate(doc, method=None):
         doc.tax_type = default_tax_type
 
     ## Calculate Item Rate If Supplier Tax Type Is Commercial
-    if doc.tax_type == "Commercial":
+    if doc.tax_type == "Commercial" and doc.purchase_request_type != "Imported":
         doc.set("taxes", [])
         for d in doc.items:
             if d.item_tax_template:
@@ -1960,6 +1960,10 @@ def ste_onload(doc, method=None):
     pass
 @frappe.whitelist()
 def ste_before_validate(doc, method=None):
+    stock_entry_type_account = frappe.db.get_value('Stock Entry Type', {'name': doc.stock_entry_type}, 'account')
+    for q in doc.items:
+        q.expense_account = stock_entry_type_account
+
     for t in doc.items:
         allowed_uom =frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code,'uom': t.uom}, ['uom'])
         if allowed_uom != t.uom:
@@ -2069,7 +2073,7 @@ def loan_validate(doc, method=None):
     pass
 @frappe.whitelist()
 def loan_on_submit(doc, method=None):
-    if doc.loan_type == "مشتريات":
+    if doc.loan_type == "مشتريات" or doc.loan_type == "عجز مناديب":
         dis = frappe.new_doc('Loan Disbursement')
         dis.against_loan = doc.name
         dis.applicant_type = "Employee"

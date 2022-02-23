@@ -19,7 +19,7 @@ def get_columns():
             "label": _("Voucher Type"),
             "fieldname": "voucher_type",
             "fieldtype": "Data",
-            "width": 180
+            "width": 160
         },
         {
             "label": _("Voucher No"),
@@ -35,34 +35,22 @@ def get_columns():
             "width": 110
         },
         {
-            "label": _("Payment Type"),
+            "label": _("Type"),
             "fieldname": "payment_type",
             "fieldtype": "Data",
-            "width": 120
-        },
-        {
-            "label": _("Mode Of Payment"),
-            "fieldname": "mode_of_payment",
-            "fieldtype": "Data",
-            "width": 180
-        },
-        {
-            "label": _("To Mode Of Payment"),
-            "fieldname": "mode_of_payment_2",
-            "fieldtype": "Data",
-            "width": 180
+            "width": 150
         },
         {
             "label": _("Party Type"),
             "fieldname": "party_type",
             "fieldtype": "Data",
-            "width": 110
+            "width": 140
         },
         {
             "label": _("Party"),
             "fieldname": "party",
             "fieldtype": "Data",
-            "width": 200
+            "width": 230
         },
         {
             "label": _("Debit"),
@@ -73,6 +61,12 @@ def get_columns():
         {
             "label": _("Credit"),
             "fieldname": "credit",
+            "fieldtype": "Currency",
+            "width": 120
+        },
+        {
+            "label": _("Balance"),
+            "fieldname": "balance",
             "fieldtype": "Currency",
             "width": 120
         }
@@ -86,42 +80,81 @@ def get_data(filters, columns):
 
 
 def get_item_price_qty_data(filters):
-    conditions = ""
-    if filters.get("from_date"):
-        conditions += " and `tabGL Entry`.posting_date>=%(from_date)s"
-    if filters.get("to_date"):
-        conditions += " and `tabGL Entry`.posting_date<=%(to_date)s"
-    a = "(Select `tabPayment Entry`.mode_of_payment from `tabPayment Entry` where `tabPayment Entry`.name = `tabGL Entry`.voucher_no)"
-    b = "(Select `tabLoan`.mode_of_payment from `tabLoan` join `tabLoan Disbursement` on `tabLoan`.name = `tabLoan Disbursement`.against_loan where `tabLoan Disbursement`.name = `tabGL Entry`.voucher_no)"
-    c = "(Select `tabPayment Entry`.party_name from `tabPayment Entry` where `tabPayment Entry`.name = `tabGL Entry`.voucher_no)"
-    d = "(Select `tabLoan`.applicant_name from `tabLoan` join `tabLoan Disbursement` on `tabLoan`.name = `tabLoan Disbursement`.against_loan where `tabLoan Disbursement`.name = `tabGL Entry`.voucher_no)"
+    conditions1 = ""
+    conditions2 = ""
+    conditions3 = ""
 
-    item_results = frappe.db.sql("""
+    if filters.get("from_date"):
+        conditions1 += " and `tabPayment Entry`.posting_date>=%(from_date)s"
+        conditions2 += " and `tabLoan Disbursement`.posting_date>=%(from_date)s"
+        conditions3 += " and `tabPayment Entry`.posting_date>=%(from_date)s"
+    if filters.get("to_date"):
+        conditions1 += " and `tabPayment Entry`.posting_date<=%(to_date)s"
+        conditions2 += " and `tabLoan Disbursement`.posting_date<=%(to_date)s"
+        conditions3 += " and `tabPayment Entry`.posting_date<=%(to_date)s"
+    if filters.get("mode_of_payment"):
+        conditions1 += "and `tabPayment Entry`.mode_of_payment = %(mode_of_payment)s "
+        conditions2 += "and `tabLoan`.mode_of_payment = %(mode_of_payment)s "
+        conditions3 += "and `tabPayment Entry`.mode_of_payment_2 = %(mode_of_payment)s "
+
+    item_results1 = frappe.db.sql("""
         SELECT 
-            `tabGL Entry`.voucher_type as voucher_type,
-            `tabGL Entry`.voucher_no as voucher_no,
-            `tabGL Entry`.posting_date as posting_date,
-            (Select `tabPayment Entry`.payment_type from `tabPayment Entry` where `tabPayment Entry`.name = `tabGL Entry`.voucher_no) as payment_type,            
-            IF(`tabGL Entry`.voucher_type = "Payment Entry", {a} , {b}) as mode_of_payment,            
-            (Select `tabPayment Entry`.mode_of_payment_2 from `tabPayment Entry` where `tabPayment Entry`.name = `tabGL Entry`.voucher_no) as mode_of_payment_2,
-            `tabGL Entry`.party_type as party_type,
-            IF(`tabGL Entry`.voucher_type = "Payment Entry", {c} , {d}) as party,
-            `tabGL Entry`.debit as debit,
-            `tabGL Entry`.credit as credit
-       
+            `tabPayment Entry`.name as voucher_no,
+            `tabPayment Entry`.posting_date as posting_date,
+            IF(`tabPayment Entry`.payment_type != "Internal Transfer", `tabPayment Entry`.payment_type, "Internal Transfer To") as payment_type,            
+            IF(`tabPayment Entry`.payment_type != "Internal Transfer", `tabPayment Entry`.party_type, "Mode of Payment") as party_type,
+            IF(`tabPayment Entry`.payment_type != "Internal Transfer", `tabPayment Entry`.party_name, `tabPayment Entry`.mode_of_payment_2) as party,
+            IF(`tabPayment Entry`.payment_type = "Receive", `tabPayment Entry`.paid_amount, 0) as debit,
+            IF(`tabPayment Entry`.payment_type in ("Internal Transfer", "Pay"), `tabPayment Entry`.paid_amount, 0) as credit      
         FROM
-            `tabGL Entry`
+            `tabPayment Entry`
         WHERE
-            `tabGL Entry`.voucher_type in ("Payment Entry", "Loan Disbursement") 
-            and `tabGL Entry`.is_cancelled = 0
-            {conditions}
-        """.format(conditions=conditions, a=a, b=b, c=c, d=d), filters, as_dict=1)
+            `tabPayment Entry`.docstatus = 1
+            {conditions1}
+        ORDER BY
+            `tabPayment Entry`.posting_date desc
+        """.format(conditions1=conditions1), filters, as_dict=1)
+
+    item_results2 = frappe.db.sql("""
+        SELECT 
+            `tabLoan Disbursement`.name as voucher_no,
+            `tabLoan Disbursement`.posting_date as posting_date,
+            `tabLoan`.loan_type as payment_type,
+            `tabLoan`.applicant_type as party_type,
+            `tabLoan`.applicant_name as party,
+            `tabLoan Disbursement`.disbursed_amount as credit
+        FROM
+            `tabLoan Disbursement` join `tabLoan` on `tabLoan`.name = `tabLoan Disbursement`.against_loan
+        WHERE
+            `tabLoan Disbursement`.docstatus = 1
+            and `tabLoan`.loan_type = "عجز مناديب"
+            {conditions2}
+        ORDER BY
+            `tabLoan Disbursement`.posting_date desc
+        """.format(conditions2=conditions2), filters, as_dict=1)
+
+    item_results3 = frappe.db.sql("""
+            SELECT 
+                `tabPayment Entry`.name as voucher_no,
+                `tabPayment Entry`.posting_date as posting_date,
+                `tabPayment Entry`.mode_of_payment as party,
+                `tabPayment Entry`.paid_amount as debit
+            FROM
+                `tabPayment Entry`
+            WHERE
+                `tabPayment Entry`.docstatus = 1
+                and `tabPayment Entry`.payment_type = "Internal Transfer"
+                {conditions3}
+            ORDER BY
+                `tabPayment Entry`.posting_date desc
+            """.format(conditions3=conditions3), filters, as_dict=1)
+
 
     result = []
-    if item_results:
-        for item_dict in item_results:
+    if item_results1:
+        for item_dict in item_results1:
             data = {
-                'voucher_type': item_dict.voucher_type,
+                'voucher_type': "Payment Entry",
                 'voucher_no': item_dict.voucher_no,
                 'posting_date': item_dict.posting_date,
                 'party_type': item_dict.party_type,
@@ -129,10 +162,38 @@ def get_item_price_qty_data(filters):
                 'debit': item_dict.debit,
                 'credit': item_dict.credit,
                 'payment_type': item_dict.payment_type,
-                'mode_of_payment': item_dict.mode_of_payment,
-                'mode_of_payment_2': item_dict.mode_of_payment_2,
+                'balance': item_dict.debit - item_dict.credit,
             }
+            result.append(data)
 
+    if item_results2:
+        for item_dict in item_results2:
+            data = {
+                'voucher_type': "Loan Disbursement",
+                'voucher_no': item_dict.voucher_no,
+                'posting_date': item_dict.posting_date,
+                'party_type': item_dict.party_type,
+                'party': item_dict.party,
+                'debit': 0,
+                'credit': item_dict.credit,
+                'payment_type': item_dict.payment_type,
+                'balance': - 1 * item_dict.credit,
+            }
+            result.append(data)
+
+    if item_results3:
+        for item_dict in item_results3:
+            data = {
+                'voucher_type': "Payment Entry",
+                'voucher_no': item_dict.voucher_no,
+                'posting_date': item_dict.posting_date,
+                'party_type': "Mode of Payment",
+                'party': item_dict.party,
+                'debit': item_dict.debit,
+                'credit': 0,
+                'payment_type': "Internal Transfer From",
+                'balance': item_dict.debit,
+            }
             result.append(data)
 
     return result

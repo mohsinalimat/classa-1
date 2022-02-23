@@ -2,13 +2,13 @@
 // For license information, please see license.txt
 /* eslint-disable */
 
-frappe.query_reports["Cash Payments Report"] = {
-	"filters": [
-		{
-			fieldname: "mode_of_payment",
-			label: __("Mode Of Payment"),
+frappe.query_reports["Items Transactions"] = {
+		"filters": [
+        {
+			fieldname: "item_group",
+			label: __("Item Group"),
 			fieldtype: "Link",
-			options: "Mode of Payment",
+			options: "Item Group",
 			reqd: 1,
 		},
 		{
@@ -21,7 +21,7 @@ frappe.query_reports["Cash Payments Report"] = {
 			fieldname:"to_date",
 			label: __("To Date"),
 			fieldtype: "Date",
-			default: frappe.datetime.get_today()
+			default: frappe.datetime.get_today(),
 		},
 	]
 }

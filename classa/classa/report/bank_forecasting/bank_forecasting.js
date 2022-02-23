@@ -2,16 +2,9 @@
 // For license information, please see license.txt
 /* eslint-disable */
 
-frappe.query_reports["Cash Payments Report"] = {
+frappe.query_reports["Bank Forecasting"] = {
 	"filters": [
-		{
-			fieldname: "mode_of_payment",
-			label: __("Mode Of Payment"),
-			fieldtype: "Link",
-			options: "Mode of Payment",
-			reqd: 1,
-		},
-		{
+	    {
 			fieldname: "from_date",
 			label: __("From Date"),
 			fieldtype: "Date",
@@ -21,7 +14,8 @@ frappe.query_reports["Cash Payments Report"] = {
 			fieldname:"to_date",
 			label: __("To Date"),
 			fieldtype: "Date",
-			default: frappe.datetime.get_today()
+			default: frappe.datetime.get_today(),
 		},
+
 	]
-}
+};

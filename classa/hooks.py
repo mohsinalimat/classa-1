@@ -181,6 +181,7 @@ doc_events = {
 scheduler_events = {
 	"all": [
 		"classa.functions.all_event",
+		"erpnext.stock.doctype.repost_item_valuation.repost_item_valuation.repost_entries"
 	],
 	"hourly": [
 		"classa.functions.hourly_event"

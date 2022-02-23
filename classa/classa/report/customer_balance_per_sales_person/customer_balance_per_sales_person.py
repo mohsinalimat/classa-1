@@ -85,15 +85,24 @@ def get_item_price_qty_data(filters):
     from_date = filters.get("from_date")
 
     result = []
+
     customer_list = frappe.db.sql(
         """select distinct
             (`tabSales Invoice`.customer) as customer
             from `tabSales Invoice`
             where `tabSales Invoice`.docstatus = 1
-            and `tabSales Invoice`.posting_date between '{from_date}' and '{to_date}'
+            and `tabSales Invoice`.posting_date <= '{to_date}'
             and `tabSales Invoice`.sales_person = '{sales_person}'
         """.format(sales_person=sales_person, from_date=from_date, to_date=to_date), as_dict=1)
-
+    '''
+    customer_list = frappe.db.sql(
+        """select
+            (`tabCustomer`.name) as customer
+            from `tabCustomer`
+            where `tabCustomer`.sales_person = '{sales_person}'
+        """.format(sales_person=sales_person), as_dict=1)
+    '''
+    
     for x in customer_list:
         data = {
             'customer': x.customer
@@ -104,32 +113,32 @@ def get_item_price_qty_data(filters):
                         
                         ifnull((select sum(debit) from `tabGL Entry` where party='{customer_list}' 
                         and voucher_type not in  ('Sales Invoice','Payment Entry') and docstatus = 1 
-                        and posting_date between '{from_date}' and '{to_date}'),0) as tdebit,
+                        and posting_date <= '{to_date}'),0) as tdebit,
                         
                         ifnull((select sum(credit) from `tabGL Entry` where party='{customer_list}' 
                         and voucher_type not in  ('Sales Invoice','Payment Entry')  and docstatus = 1 
-                        and posting_date between '{from_date}' and '{to_date}'),0) as tcredit,
+                        and posting_date <= '{to_date}'),0) as tcredit,
                         
                         IFNULL((select sum(base_grand_total) 
                         from `tabSales Invoice`
                         where `tabSales Invoice`.docstatus = 1
                         and `tabSales Invoice`.customer = '{customer_list}'
                         and `tabSales Invoice`.sales_person = '{sales_person}'
-                        and `tabSales Invoice`.posting_date between '{from_date}' and '{to_date}'),0) as debit,
+                        and `tabSales Invoice`.posting_date <= '{to_date}'),0) as debit,
 
                         IFNULL((select sum(base_paid_amount) 
                         from `tabPayment Entry`
                         where `tabPayment Entry`.docstatus = 1
                         and `tabPayment Entry`.party = '{customer_list}'
                         and `tabPayment Entry`.sales_person = '{sales_person}'
-                        and `tabPayment Entry`.posting_date between '{from_date}' and '{to_date}'),0) as credit,
+                        and `tabPayment Entry`.posting_date <= '{to_date}'),0) as credit,
 
                         IFNULL((select `tabSales Invoice`.posting_date
                         from `tabSales Invoice`
                         where `tabSales Invoice`.docstatus = 1
                         and `tabSales Invoice`.customer = '{customer_list}'
                         and `tabSales Invoice`.sales_person = '{sales_person}'
-                        and `tabSales Invoice`.posting_date between '{from_date}' and '{to_date}'
+                        and `tabSales Invoice`.posting_date <= '{to_date}'
                         order by `tabSales Invoice`.posting_date desc LIMIT 1) ,"00-00-0000") as last_invoice_date,
 
                         IFNULL((select `tabPayment Entry`.posting_date
@@ -137,7 +146,7 @@ def get_item_price_qty_data(filters):
                         where `tabPayment Entry`.docstatus = 1
                         and `tabPayment Entry`.party = '{customer_list}'
                         and `tabPayment Entry`.sales_person = '{sales_person}'
-                        and `tabPayment Entry`.posting_date between '{from_date}' and '{to_date}'
+                        and `tabPayment Entry`.posting_date <= '{to_date}'
                         order by `tabPayment Entry`.posting_date desc LIMIT 1) ,"00-00-0000") as last_payment_date
 
                     FROM
@@ -151,7 +160,7 @@ def get_item_price_qty_data(filters):
                         where `tabSales Invoice`.docstatus = 1
                         and `tabSales Invoice`.customer = '{customer_list}'
                         and `tabSales Invoice`.sales_person = '{sales_person}'
-                        and `tabSales Invoice`.posting_date between '{from_date}' and '{to_date}') desc
+                        and `tabSales Invoice`.posting_date <= '{to_date}') desc
 
                     """.format(customer_list=x.customer, sales_person=sales_person, from_date=from_date,
                                to_date=to_date), filters, as_dict=1)

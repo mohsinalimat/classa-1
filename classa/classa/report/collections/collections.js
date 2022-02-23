@@ -2,14 +2,25 @@
 // For license information, please see license.txt
 /* eslint-disable */
 
-frappe.query_reports["Cash Payments Report"] = {
+frappe.query_reports["Collections"] = {
 	"filters": [
+	    {
+			fieldname: "customer",
+			label: __("Customer"),
+			fieldtype: "Link",
+			options: "Customer",
+		},
+        {
+			fieldname: "mode_of_payment_type",
+			label: __("Mode Of Payment Type"),
+			fieldtype: "Select",
+			options: ["Cash", "Cheque", "Bank"],
+		},
 		{
 			fieldname: "mode_of_payment",
 			label: __("Mode Of Payment"),
 			fieldtype: "Link",
 			options: "Mode of Payment",
-			reqd: 1,
 		},
 		{
 			fieldname: "from_date",

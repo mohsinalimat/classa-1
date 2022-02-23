@@ -28,6 +28,15 @@ def hourly_event():
         update `tabSales Invoice Item` join `tabSales Invoice` on `tabSales Invoice`.name = `tabSales Invoice Item`.parent
         set `tabSales Invoice Item`.territory = `tabSales Invoice`.territory
     """)
+    frappe.db.sql("""
+        update `tabSales Invoice` join `tabSales Person` on `tabSales Invoice`.sales_person = `tabSales Person`.name 
+        join `tabEmployee` on `tabSales Person`.employee = `tabEmployee`.name
+        set `tabSales Invoice`.branch = `tabEmployee`.branch
+    """)
+    frappe.db.sql("""
+        update `tabSales Invoice Item` join `tabSales Invoice` on `tabSales Invoice`.name = `tabSales Invoice Item`.parent
+        set `tabSales Invoice Item`.branch = `tabSales Invoice`.branch
+    """)
 
 def all_event():
     pass

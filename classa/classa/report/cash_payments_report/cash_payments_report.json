@@ -10,7 +10,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": "sinv",
- "modified": "2022-02-09 11:41:58.029673",
+ "modified": "2022-03-22 10:46:22.466634",
  "modified_by": "Administrator",
  "module": "Classa",
  "name": "Cash Payments Report",
@@ -68,6 +68,9 @@
   },
   {
    "role": "Chains AR"
+  },
+  {
+   "role": "Retail AR"
   }
  ]
 }

@@ -81,6 +81,7 @@ def get_item_price_qty_data(filters):
         WHERE
             `tabPayment Entry`.docstatus = 1
             and `tabPayment Entry`.payment_type = "Receive"
+            and `tabPayment Entry`.cheque_status != "مردود"
             and `tabPayment Entry`.party_type = "Customer"
             and `tabPayment Entry`.party != "عميل مسحوبات عاملين"
             and `tabPayment Entry`.mode_of_payment != "مشتريات عاملين"

@@ -11,6 +11,12 @@ frappe.query_reports["Loans report"] = {
 			"options": "\nمشتريات\nسلف مجدوله\nسلف من الراتب"
 		},
 		{
+			"fieldname": "status",
+			"label": __("Status"),
+			"fieldtype": "Select",
+			"options": ["", "Sanctioned", "Partially Disbursed", "Disbursed", "Loan Closure Requested", "Closed"],
+		},
+		{
 			"fieldname": "from_date",
 			"label": __("From Date"),
 			"fieldtype": "Date",

@@ -65,10 +65,33 @@ def get_columns():
             "width": 130
         },
         {
-            "label": _("مندوب المبيعات"),
+            "label": _("مندوب الأوردر"),
             "fieldname": "sales_person",
-            "fieldtype": "Link",
-            "options": "Sales Person",
+            "fieldtype": "Data",
+            "width": 220
+        },
+        {
+            "label": _("مدير القسم"),
+            "fieldname": "sales_manager",
+            "fieldtype": "Data",
+            "width": 220
+        },
+        {
+            "label": _("مدير إدارة العميل"),
+            "fieldname": "territory_manager",
+            "fieldtype": "Data",
+            "width": 220
+        },
+        {
+            "label": _("مدير التشغيل الخارجي"),
+            "fieldname": "sales_supervisor",
+            "fieldtype": "Data",
+            "width": 220
+        },
+        {
+            "label": _("منسق"),
+            "fieldname": "merchandiser",
+            "fieldtype": "Data",
             "width": 220
         },
         {
@@ -112,7 +135,11 @@ def get_item_price_qty_data(filters):
                 `tabSales Invoice`.territory as territory,
                 `tabSales Invoice`.customer_address as customer_address,
                 `tabSales Invoice`.grand_total as grand_total,
-                `tabSales Invoice`.sales_person as sales_person,
+                (Select `tabAddress`.sales_person from `tabAddress` where `tabAddress`.name = `tabSales Invoice`.customer_address) as sales_person,
+                (Select `tabAddress`.sales_manager from `tabAddress` where `tabAddress`.name = `tabSales Invoice`.customer_address) as sales_manager,
+                (Select `tabAddress`.territory_manager from `tabAddress` where `tabAddress`.name = `tabSales Invoice`.customer_address) as territory_manager,
+                (Select `tabAddress`.sales_supervisor from `tabAddress` where `tabAddress`.name = `tabSales Invoice`.customer_address) as sales_supervisor,
+                (Select `tabAddress`.merchandiser from `tabAddress` where `tabAddress`.name = `tabSales Invoice`.customer_address) as merchandiser,
                 (Select `tabDriver`.full_name from `tabDriver` where `tabSales Invoice`.driver = `tabDriver`.name) as driver,
                 (Select `tabUser`.full_name from `tabUser` where `tabSales Invoice`.owner = `tabUser`.name) as owner
                 
@@ -139,6 +166,10 @@ def get_item_price_qty_data(filters):
                 'customer_address': item_dict.customer_address,
                 'grand_total': item_dict.grand_total,
                 'sales_person': item_dict.sales_person,
+                'sales_manager': item_dict.sales_manager,
+                'territory_manager': item_dict.territory_manager,
+                'sales_supervisor': item_dict.sales_supervisor,
+                'merchandiser': item_dict.merchandiser,
                 'driver': item_dict.driver,
                 'owner': item_dict.owner,
             }

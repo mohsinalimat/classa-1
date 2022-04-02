@@ -76,6 +76,18 @@ def get_columns():
             "width": 110
         },
         {
+            "label": _("PINV1 بالكرتونة"),
+            "fieldname": "pinv_carton1",
+            "fieldtype": "Float",
+            "width": 110
+        },
+        {
+            "label": _("PINV1 بونص"),
+            "fieldname": "pinv_carton2",
+            "fieldtype": "Float",
+            "width": 110
+        },
+        {
             "label": _("المشتريات %"),
             "fieldname": "p_percent",
             "fieldtype": "Percent",
@@ -218,9 +230,33 @@ def get_item_price_qty_data(filters):
                                        and `tabPurchase Invoice Item`.item_code = '{itemo}'
                                        and `tabPurchase Invoice`.posting_date between '{from_date}' and '{to_date}'
                                """.format(itemo=itemo, from_date=from_date, to_date=to_date), as_dict=0)
+            pinv1 = frappe.db.sql(""" select 
+                                        ifnull(sum(`tabPurchase Invoice Item`.stock_qty), 0) as stock_qty
+                                   from 
+                                        `tabPurchase Invoice Item` join `tabPurchase Invoice` on `tabPurchase Invoice`.name = `tabPurchase Invoice Item`.parent
+                                   where 
+                                       `tabPurchase Invoice`.docstatus = 1
+                                       and `tabPurchase Invoice Item`.stock_qty >0
+                                       and `tabPurchase Invoice Item`.rate >0
+                                       and `tabPurchase Invoice Item`.item_code = '{itemo}'
+                                       and `tabPurchase Invoice`.posting_date between '{from_date}' and '{to_date}'
+                               """.format(itemo=itemo, from_date=from_date, to_date=to_date), as_dict=0)
+            pinv2 = frappe.db.sql(""" select 
+                                        ifnull(sum(`tabPurchase Invoice Item`.stock_qty), 0) as stock_qty
+                                   from 
+                                        `tabPurchase Invoice Item` join `tabPurchase Invoice` on `tabPurchase Invoice`.name = `tabPurchase Invoice Item`.parent
+                                   where 
+                                       `tabPurchase Invoice`.docstatus = 1
+                                       and `tabPurchase Invoice Item`.stock_qty >0
+                                       and `tabPurchase Invoice Item`.rate =0
+                                       and `tabPurchase Invoice Item`.item_code = '{itemo}'
+                                       and `tabPurchase Invoice`.posting_date between '{from_date}' and '{to_date}'
+                               """.format(itemo=itemo, from_date=from_date, to_date=to_date), as_dict=0)
 
             data['pinv_qty'] = pinv[0][0]
             data['pinv_carton'] = pinv[0][0] / item_dict.carton_cf if item_dict.carton_cf else pinv[0][0]
+            data['pinv_carton1'] = pinv1[0][0] / item_dict.carton_cf if item_dict.carton_cf else pinv1[0][0]
+            data['pinv_carton2'] = pinv2[0][0] / item_dict.carton_cf if item_dict.carton_cf else pinv2[0][0]
 
             sinv = frappe.db.sql(""" select 
                                         ifnull(sum(`tabSales Invoice Item`.stock_qty), 0) as stock_qty

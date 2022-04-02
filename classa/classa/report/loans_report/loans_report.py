@@ -45,6 +45,12 @@ def get_columns():
 			"width": 120
 		},
 		{
+			"label": _("Loan Status"),
+			"fieldname": "status",
+			"fieldtype": "Data",
+			"width": 130
+		},
+		{
 			"label": _("Loan Amount"),
 			"fieldname": "loan_amount",
 			"fieldtype": "Currency",
@@ -73,6 +79,8 @@ def get_item_price_qty_data(filters):
 	conditions = ""
 	if filters.get("type"):
 		conditions += " and `tabLoan`.loan_type=%(type)s"
+	if filters.get("status"):
+		conditions += " and `tabLoan`.status=%(status)s"
 
 	from_date = filters.get("from_date")
 	to_date = filters.get("to_date")
@@ -83,6 +91,7 @@ def get_item_price_qty_data(filters):
 					`tabLoan`.applicant_name as employee_name,
 					`tabLoan`.loan_type as loan_type,
 					`tabLoan`.posting_date as date,
+					`tabLoan`.status as status,
 					`tabLoan`.loan_amount as loan_amount,
 					`tabRepayment Schedule`.total_payment as accrued_amount,
 					`tabRepayment Schedule`.payment_date as accrual_date
@@ -104,6 +113,7 @@ def get_item_price_qty_data(filters):
 				'employee_name': item_dict.employee_name,
 				'loan_type': item_dict.loan_type,
 				'date': item_dict.date,
+				'status': item_dict.status,
 				'loan_amount': item_dict.loan_amount,
 				'accrual_date': item_dict.accrual_date,
 				'accrued_amount': item_dict.accrued_amount

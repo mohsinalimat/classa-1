@@ -70,8 +70,28 @@ frappe.query_reports["Items Evaluation"] = {
 			fieldtype: "Check",
 		},
 		{
-			fieldname: "summary",
-			label: __("Summary"),
+			fieldname: "group_by_item",
+			label: __("Group By Item"),
+			fieldtype: "Check",
+		},
+		{
+			fieldname: "group_by_customer",
+			label: __("Group By Customer"),
+			fieldtype: "Check",
+		},
+		{
+			fieldname: "group_by_customer_group",
+			label: __("Group By Customer Group"),
+			fieldtype: "Check",
+		},
+		{
+			fieldname: "group_by_sales_person",
+			label: __("Group By Sales Person"),
+			fieldtype: "Check",
+		},
+		{
+			fieldname: "group_by_branch",
+			label: __("Group By Branch"),
 			fieldtype: "Check",
 		},
 	]

@@ -14,7 +14,7 @@ frappe.query_reports["Collections"] = {
 			fieldname: "mode_of_payment_type",
 			label: __("Mode Of Payment Type"),
 			fieldtype: "Select",
-			options: ["Cash", "Cheque", "Bank"],
+			options: ["", "Cash", "Cheque", "Bank"],
 		},
 		{
 			fieldname: "mode_of_payment",

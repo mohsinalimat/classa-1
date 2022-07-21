@@ -80,6 +80,7 @@ def get_item_price_qty_data(filters):
 
     result = []
 
+
     customer_list = frappe.db.sql(
         """select
             (`tabCustomer`.name) as customer
@@ -98,19 +99,19 @@ def get_item_price_qty_data(filters):
 
                         ifnull((select sum(debit) from `tabGL Entry` where party='{customer_list}' 
                         and is_cancelled = 0
-                        and posting_date < '{from_date}'),0) as tdebit,
+                        and posting_date < '{from_date}' and party_type not in ('Employee')),0) as tdebit,
 
                         ifnull((select sum(credit) from `tabGL Entry` where party='{customer_list}' 
                         and is_cancelled = 0
-                        and posting_date < '{from_date}'),0) as tcredit,
+                        and posting_date < '{from_date}' and party_type not in ('Employee')),0) as tcredit,
 
                         IFNULL((select sum(debit) from `tabGL Entry` where party='{customer_list}' 
                         and is_cancelled = 0
-                        and posting_date between '{from_date}' and '{to_date}'),0) as debit,
+                        and posting_date between '{from_date}' and '{to_date}' and party_type not in ('Employee')),0) as debit,
 
                         IFNULL((select sum(credit) from `tabGL Entry` where party='{customer_list}' 
                         and is_cancelled = 0
-                        and posting_date between '{from_date}' and '{to_date}'),0) as credit,
+                        and posting_date between '{from_date}' and '{to_date}' and party_type not in ('Employee')),0) as credit,
 
                         IFNULL((select `tabSales Invoice`.posting_date
                         from `tabSales Invoice`

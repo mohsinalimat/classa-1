@@ -4,9 +4,9 @@ from frappe import auth
 import datetime
 from frappe.utils import getdate
 import json, ast, requests
+from six import iteritems, string_types
 from frappe.utils import money_in_words
 import urllib.request
-
 
 
 ################ Quotation
@@ -14,13 +14,18 @@ import urllib.request
 @frappe.whitelist()
 def quot_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def quot_before_validate(doc, method=None):
     doc.ignore_pricing_rule = doc.ignore_pricing_rule_2
 
-    
     for t in doc.items:
-        allowed_uom =frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code,'uom': t.uom}, ['uom'])
+        #item_price_hold = frappe.db.get_value('Item Price', {'item_code': t.item_code,'price_list':doc.price_list}, ['hold'])
+        #if item_price_hold == 1 :
+        #    frappe.throw("الصنف {0} غير مفعل في قائمة اسعار العميل  ".format(t.item_code,t.idx))
+
+        allowed_uom = frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code, 'uom': t.uom}, ['uom'])
         if allowed_uom != t.uom:
             frappe.throw("Row #" + str(t.idx) + ": وحدة القياس غير معرفة للصنف " + t.item_code)
 
@@ -52,7 +57,9 @@ def quot_before_validate(doc, method=None):
 
     ## Fetch Price List Rate In Items Table
     for x in doc.items:
-        x.price_list_rate = frappe.db.get_value("Item Price", {'price_list': doc.selling_price_list, 'item_code': x.item_code}, "price_list_rate")
+        x.price_list_rate = frappe.db.get_value("Item Price",
+                                                {'price_list': doc.selling_price_list, 'item_code': x.item_code},
+                                                "price_list_rate")
 
     ## Fetch Tax Type From Customer
     default_tax_type = frappe.db.get_value("Customer", doc.party_name, "tax_type")
@@ -117,7 +124,6 @@ def quot_before_validate(doc, method=None):
             doc.outstanding_amount = totals
             doc.total_taxes_and_charges = 0
 
-
     ## Calculate Taxes Table If Customer Tax Type Is Taxable
     if doc.tax_type == "Taxable":
         doc.set("taxes", [])
@@ -152,14 +158,19 @@ def quot_before_validate(doc, method=None):
 
 @frappe.whitelist()
 def quot_validate(doc, method=None):
+    for t in doc.items:
+        item_price_hold = frappe.db.get_value("Item Price", {'item_code': t.item_code,'price_list': doc.selling_price_list}, "hold")
+        if item_price_hold ==1 :
+            frappe.throw("تم ايقاف التعامل على السعر الخاص بالمنتج {0} في الصف {1}".format(t.item_code,t.idx))
     for d in doc.items:
         x = d.price_list_rate + (d.price_list_rate * 0.01)
         y = d.rate + (d.rate * 0.01)
         if (d.rate > x or d.price_list_rate > y):
-            frappe.msgprint("Row #"+str(d.idx)+": Check Price List For Item Code " + d.item_code)
+            frappe.msgprint("Row #" + str(d.idx) + ": Check Price List For Item Code " + d.item_code)
 
         if not d.price_list_rate:
-            frappe.msgprint("Row #"+str(d.idx)+": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
+            frappe.msgprint("Row #" + str(
+                d.idx) + ": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
 
 
 @frappe.whitelist()
@@ -168,24 +179,33 @@ def quot_on_submit(doc, method=None):
         x = d.price_list_rate + (d.price_list_rate * 0.01)
         y = d.rate + (d.rate * 0.01)
         if (d.rate > x or d.price_list_rate > y) and not doc.allow_price:
-            frappe.msgprint("Row #"+str(d.idx)+": Check Price List For Item Code " + d.item_code)
+            frappe.msgprint("Row #" + str(d.idx) + ": Check Price List For Item Code " + d.item_code)
 
         if not d.price_list_rate:
-            frappe.msgprint("Row #"+str(d.idx)+": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
+            frappe.msgprint("Row #" + str(
+                d.idx) + ": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
 
 
 @frappe.whitelist()
 def quot_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def quot_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def quot_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def quot_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def quot_on_update(doc, method=None):
     pass
@@ -197,6 +217,8 @@ def quot_on_update(doc, method=None):
 @frappe.whitelist()
 def so_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def so_before_validate(doc, method=None):
     doc.ignore_pricing_rule = doc.ignore_pricing_rule_2
@@ -205,7 +227,7 @@ def so_before_validate(doc, method=None):
     doc.vehicle_warehouse = frappe.db.get_value("Vehicle", doc.vehicle, "warehouse")
 
     for t in doc.items:
-        allowed_uom =frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code,'uom': t.uom}, ['uom'])
+        allowed_uom = frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code, 'uom': t.uom}, ['uom'])
         if allowed_uom != t.uom:
             frappe.throw("Row #" + str(t.idx) + ": وحدة القياس غير معرفة للصنف " + t.item_code)
 
@@ -215,7 +237,6 @@ def so_before_validate(doc, method=None):
     parent_territory = frappe.db.get_value("Territory", doc.territory, "parent_territory")
     if (doc.customer_group == "مجموعة السلاسل" or parent_group == "مجموعة السلاسل") and not doc.customer_address_2:
         frappe.throw("Please Select The Customer's Address")
-
 
     if (doc.customer_group == "مجموعة السلاسل" or parent_group == "مجموعة السلاسل"):
         doc.customer_address = doc.customer_address_2
@@ -342,7 +363,8 @@ def so_before_validate(doc, method=None):
         new_taxes = 0
         for d in doc.items:
             if d.item_tax_template:
-                item_tax_rate = frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template},"tax_rate")
+                item_tax_rate = frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template},
+                                                    "tax_rate")
                 d.tax_amount = d.net_amount * item_tax_rate / 100
                 new_taxes += d.tax_amount
 
@@ -366,24 +388,33 @@ def so_before_validate(doc, method=None):
         taxes1.cost_center = doc.cost_center
         '''
 
-    sales_order_list = frappe.db.get_list('Sales Order', filters=[{'docstatus': ['!=', 2]}], fields=["quotation", "name"])
+    sales_order_list = frappe.db.get_list('Sales Order', filters=[{'docstatus': ['!=', 2]}],
+                                          fields=["quotation", "name"])
     for x in sales_order_list:
         if doc.quotation == x.quotation and doc.quotation is not None and doc.name != x.name:
             frappe.throw("Another Sales Order " + x.name + " Is Linked With The Same Quotation. ")
 
+
 @frappe.whitelist()
 def so_validate(doc, method=None):
+    for t in doc.items:
+        item_price_hold = frappe.db.get_value("Item Price", {'item_code': t.item_code,'price_list': doc.selling_price_list}, "hold")
+        if item_price_hold ==1 :
+            frappe.throw("تم ايقاف التعامل على السعر الخاص بالمنتج {0} في الصف {1}".format(t.item_code,t.idx))
     for d in doc.items:
         x = d.price_list_rate + (d.price_list_rate * 0.01)
         y = d.rate + (d.rate * 0.01)
-        if (doc.tax_type == "Taxable") and (d.rate > x or d.price_list_rate > y) and not(doc.allow_price or d.pricing_rules):
-            frappe.msgprint("Row #"+str(d.idx)+": Check Price List For Item Code " + d.item_code)
+        if (doc.tax_type == "Taxable") and (d.rate > x or d.price_list_rate > y) and not (
+                doc.allow_price or d.pricing_rules):
+            frappe.msgprint("Row #" + str(d.idx) + ": Check Price List For Item Code " + d.item_code)
 
         if not d.price_list_rate:
-            frappe.msgprint("Row #"+str(d.idx)+": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
+            frappe.msgprint("Row #" + str(
+                d.idx) + ": Item Code " + d.item_code + " Is Not Listed For Customer " + doc.customer_name)
 
         if not doc.sales_person:
             frappe.throw("مندوب البيع الزامي")
+
 
 @frappe.whitelist()
 def so_on_submit(doc, method=None):
@@ -394,19 +425,18 @@ def so_on_submit(doc, method=None):
         for d in doc.items:
             x = d.price_list_rate + (d.price_list_rate * 0.01)
             y = d.rate + (d.rate * 0.01)
-            if (d.rate > x or d.price_list_rate > y) and not(doc.allow_price or d.pricing_rules):
+            if (d.rate > x or d.price_list_rate > y) and not (doc.allow_price or d.pricing_rules):
                 frappe.throw("Row #" + str(d.idx) + ": Check Price List For Item Code " + d.item_code)
-            #if d.qty > d.actual_qty:
+            # if d.qty > d.actual_qty:
             #   frappe.throw("Row #" + str(d.idx) + ": Ordered Qty Is More Than Available Qty For Item " + d.item_code)
             if (d.rate == 0 or d.price_list_rate == 0):
-                frappe.throw("Row #"+str(d.idx)+": Rate Cannot Be Zero For Item Code " + d.item_code)
+                frappe.throw("Row #" + str(d.idx) + ": Rate Cannot Be Zero For Item Code " + d.item_code)
 
     ## Make Vehicle & Vehicle Warehouse Fields Mandatory On Submit
     if not doc.vehicle:
         frappe.throw("Please Select The Vehicle")
     if not doc.vehicle_warehouse:
         frappe.throw("Please Add Warehouse For The Vehicle" + doc.vehicle)
-
 
     ## Auto Create Draft Delivery Note On Submit
     '''
@@ -552,23 +582,31 @@ def so_on_submit(doc, method=None):
         items.conversion_factor = c.conversion_factor
         items.so_item = c.name
         items.so = doc.name
-    
+
     new_doc.insert()
     frappe.msgprint("  تم إنشاء حركة مخزنية بحالة مسودة رقم " + new_doc.name)
-    
+
 
 @frappe.whitelist()
 def so_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def so_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def so_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def so_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def so_on_update(doc, method=None):
     pass
@@ -576,12 +614,13 @@ def so_on_update(doc, method=None):
 
 @frappe.whitelist()
 def delete_different_price_items(doc, method=None):
-    [doc.items.remove(d) for d in doc.items if (d.rate != d.price_list_rate) or (d.rate == 0) or (d.price_list_rate == 0)]
+    [doc.items.remove(d) for d in doc.items if
+     (d.rate != d.price_list_rate) or (d.rate == 0) or (d.price_list_rate == 0)]
+
 
 @frappe.whitelist()
 def delete_insufficient_stock_items(doc, method=None):
     [doc.items.remove(d) for d in doc.items if (d.qty > d.actual_qty)]
-
 
 
 ################ Delivery Note
@@ -589,11 +628,12 @@ def delete_insufficient_stock_items(doc, method=None):
 @frappe.whitelist()
 def dn_onload(doc, method=None):
     ## Fetch Source Warehouse From Vehicle
-    #doc.set_warehouse = frappe.db.get_value("Vehicle", doc.vehicle, "warehouse")
+    # doc.set_warehouse = frappe.db.get_value("Vehicle", doc.vehicle, "warehouse")
 
     ## Fetch Accounting Dimensions In Items Table
     for x in doc.items:
         x.warehouse = doc.set_warehouse
+
 
 @frappe.whitelist()
 def dn_before_validate(doc, method=None):
@@ -602,19 +642,17 @@ def dn_before_validate(doc, method=None):
     if doc.customer == "عميل مسحوبات عاملين" and not doc.sell_to_employees:
         frappe.throw("برجاء تحديد الموظف")
 
-
     for t in doc.items:
-        allowed_uom =frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code,'uom': t.uom}, ['uom'])
+        allowed_uom = frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code, 'uom': t.uom}, ['uom'])
         if allowed_uom != t.uom:
             frappe.throw("Row #" + str(t.idx) + ": وحدة القياس غير معرفة للصنف " + t.item_code)
-
 
     ## Fetch Driver Name and Transporter Name
     doc.driver_name = frappe.db.get_value("Driver", doc.driver, "full_name")
     doc.transporter_name = frappe.db.get_value("Supplier", doc.transporter, "name")
 
     ## Fetch Vehicle From Source Warehouse
-    #doc.vehicle = frappe.db.get_value("Warehouse", doc.set_warehouse, "vehicle")
+    # doc.vehicle = frappe.db.get_value("Warehouse", doc.set_warehouse, "vehicle")
 
     ## Fetch Branch From Territory
     doc.branch = frappe.db.get_value("Territory", doc.territory, "branch")
@@ -643,7 +681,8 @@ def dn_before_validate(doc, method=None):
         y.department = doc.department
         y.cost_center = doc.cost_center
 
-    delivery_note_list = frappe.db.get_list('Delivery Note', filters=[{'docstatus': ['!=', 2]}], fields=["sales_order", "name"])
+    delivery_note_list = frappe.db.get_list('Delivery Note', filters=[{'docstatus': ['!=', 2]}],
+                                            fields=["sales_order", "name"])
     for x in delivery_note_list:
         if doc.sales_order == x.sales_order and doc.sales_order is not None and doc.name != x.name and doc.is_return == 0:
             frappe.throw("Another Delivery Note " + x.name + " Is Linked With The Same Sales Order. ")
@@ -744,28 +783,42 @@ def dn_before_validate(doc, method=None):
 @frappe.whitelist()
 def dn_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def dn_on_submit(doc, method=None):
+    pass
+    '''
     for d in doc.items:
         warehouse_type = frappe.db.get_value("Warehouse", d.warehouse,"warehouse_type")
         if d.stock_qty > d.actual_qty and warehouse_type != "فحص مردود مبيعات":
             frappe.throw("الكمية عير متاحة للصنف {0} في الصف رقم {1}".format(d.item_code,d.idx))
-            
+    '''
+
 @frappe.whitelist()
 def dn_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def dn_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def dn_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def dn_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def dn_on_update(doc, method=None):
     pass
+
 
 ################ Sales Invoice
 
@@ -773,11 +826,13 @@ def dn_on_update(doc, method=None):
 @frappe.whitelist()
 def siv_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def siv_before_validate(doc, method=None):
     doc.ignore_pricing_rule = doc.ignore_pricing_rule_2
-    #doc.update_stock = 1
-    #if doc.tax_type == "Taxable":
+    # doc.update_stock = 1
+    # if doc.tax_type == "Taxable":
     #    doc.set_warehouse = frappe.db.get_value("Vehicle", doc.vehicle, "warehouse")
 
     ## Fetch Sales Persons
@@ -795,6 +850,7 @@ def siv_before_validate(doc, method=None):
         doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
         doc.territory_manager = frappe.db.get_value("Customer", doc.customer, "sales_person")
         doc.sales_manager = frappe.db.get_value("Customer Group", doc.customer_group, "sales_person")
+
     if (doc.customer_group == "مجموعة السلاسل" or parent_group == "مجموعة السلاسل") and not doc.sales_person:
         sales_person2 = frappe.db.get_value("Address", doc.customer_address, "sales_person")
         if sales_person2:
@@ -815,10 +871,9 @@ def siv_before_validate(doc, method=None):
         frappe.throw("برجاء تحديد الموظف")
 
     for t in doc.items:
-        allowed_uom = frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code,'uom': t.uom}, ['uom'])
+        allowed_uom = frappe.db.get_value('UOM Conversion Detail', {'parent': t.item_code, 'uom': t.uom}, ['uom'])
         if allowed_uom != t.uom:
             frappe.throw("Row #" + str(t.idx) + ": وحدة القياس غير معرفة للصنف " + t.item_code)
-
 
     ## Fetch Branch From Sales Person
     emp = frappe.db.get_value("Sales Person", doc.sales_person, "employee")
@@ -838,7 +893,8 @@ def siv_before_validate(doc, method=None):
         x.branch = doc.branch
         x.department = doc.department
         x.cost_center = doc.cost_center
-        x.warehouse = doc.set_warehouse
+        if doc.set_warehouse:
+            x.warehouse = doc.set_warehouse
 
     ## Fetch Accounting Dimensions In Taxes Table
     for y in doc.taxes:
@@ -848,10 +904,13 @@ def siv_before_validate(doc, method=None):
         y.department = doc.department
         y.cost_center = doc.cost_center
 
-    sales_invoice_list = frappe.db.get_list('Sales Invoice', filters=[{'docstatus': ['!=', 2]}], fields=["delivery_note", "name"])
+    sales_invoice_list = frappe.db.get_list('Sales Invoice', filters=[{'docstatus': ['!=', 2]}],
+                                            fields=["delivery_note", "name"])
+
     for x in sales_invoice_list:
         if doc.delivery_note == x.delivery_note and doc.delivery_note is not None and doc.name != x.name and doc.is_return == 0:
             frappe.throw("Another Sales Invoice " + x.name + " Is Linked With The Same Delivery Note. ")
+    
 
     ## Fetch Sales Person In Sales Team Table
     if doc.sales_person:
@@ -859,7 +918,6 @@ def siv_before_validate(doc, method=None):
         sales_persons = doc.append("sales_team", {})
         sales_persons.sales_person = doc.sales_person
         sales_persons.allocated_percentage = 100
-
 
     ## Fetch Tax Type From Customer
     default_tax_type = frappe.db.get_value("Customer", doc.customer, "tax_type")
@@ -872,11 +930,11 @@ def siv_before_validate(doc, method=None):
         for d in doc.items:
             if d.item_tax_template:
                 item_tax_rate = float(frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template},
-                                                    "tax_rate"))
+                                                          "tax_rate"))
                 if item_tax_rate > 0:
                     if d.discount_percentage:
                         new_rate = (d.price_list_rate + (item_tax_rate * d.price_list_rate / 100))
-                        new_discounted_rate = new_rate - ((d.discount_percentage * new_rate )/ 100)
+                        new_discounted_rate = new_rate - ((d.discount_percentage * new_rate) / 100)
                         d.rate = new_discounted_rate
                         d.net_rate = new_discounted_rate
                         d.base_net_rate = new_discounted_rate
@@ -887,7 +945,7 @@ def siv_before_validate(doc, method=None):
                         d.base_amount = new_discounted_rate * d.qty
                         d.tax_rate = new_rate
                         d.total_with_tax_before_discount_ = new_rate * d.qty
-                        d.discounted_amount = new_rate * d.discount_percentage/100
+                        d.discounted_amount = new_rate * d.discount_percentage / 100
                     else:
                         new_rate = (d.price_list_rate + (item_tax_rate * d.price_list_rate / 100))
                         d.rate = new_rate
@@ -908,8 +966,10 @@ def siv_before_validate(doc, method=None):
             doc.grand_total = totals - doc.discount_amount
             doc.rounded_total = totals - doc.discount_amount
             doc.base_rounded_total = totals - doc.discount_amount
-            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),doc.currency)
-            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
+            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),
+                                          doc.currency)
+            doc.base_in_words = money_in_words(
+                doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals - doc.discount_amount
             doc.net_total = totals - doc.discount_amount
             doc.base_net_total = totals - doc.discount_amount
@@ -922,8 +982,10 @@ def siv_before_validate(doc, method=None):
             doc.grand_total = totals
             doc.rounded_total = totals
             doc.base_rounded_total = totals
-            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),doc.currency)
-            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
+            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),
+                                          doc.currency)
+            doc.base_in_words = money_in_words(
+                doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals
             doc.net_total = totals
             doc.base_net_total = totals
@@ -962,9 +1024,6 @@ def siv_before_validate(doc, method=None):
         taxes1.cost_center = doc.cost_center
         '''
 
-
-
-
     '''
     ## validate sales invoice items with stock entry items
 
@@ -977,7 +1036,6 @@ def siv_before_validate(doc, method=None):
     [doc.items.remove(d) for d in doc.items if not d.st_item]
 
     '''
-
 
     """
     def removeSingleRow(master, detailName):
@@ -995,9 +1053,17 @@ def siv_before_validate(doc, method=None):
 
 @frappe.whitelist()
 def siv_validate(doc, method=None):
+    for t in doc.items:
+        item_price_hold = frappe.db.get_value("Item Price", {'item_code': t.item_code,'price_list': doc.selling_price_list}, "hold")
+        if item_price_hold ==1 :
+            frappe.throw("تم ايقاف التعامل على السعر الخاص بالمنتج {0} في الصف {1}".format(t.item_code,t.idx))
     if doc.stock_entry:
-        frappe.db.sql(""" update `tabStock Entry` set sales_invoice = '{invoice}' where name = '{stock_entry}' """.format(invoice=doc.name,stock_entry=doc.stock_entry))
-        frappe.db.sql(""" update `tabStock Entry` set sales_invoice_status = 'Draft' where name = '{stock_entry}' and sales_invoice_status is null """.format(invoice=doc.name,stock_entry=doc.stock_entry))
+        frappe.db.sql(
+            """ update `tabStock Entry` set sales_invoice = '{invoice}' where name = '{stock_entry}' """.format(
+                invoice=doc.name, stock_entry=doc.stock_entry))
+        frappe.db.sql(
+            """ update `tabStock Entry` set sales_invoice_status = 'Draft' where name = '{stock_entry}' and sales_invoice_status is null """.format(
+                invoice=doc.name, stock_entry=doc.stock_entry))
     ## Remove Returned Qty From Sales Invoice
     for p in doc.items:
         if p.dn_detail:
@@ -1009,7 +1075,7 @@ def siv_validate(doc, method=None):
                 new_qty = qty_del - returned_qty
                 p.qty = new_qty
 
-    #doc.ignore_pricing_rule = 0
+    # doc.ignore_pricing_rule = 0
 
     if not doc.sales_person:
         frappe.throw("مندوب البيع الزامي")
@@ -1017,10 +1083,11 @@ def siv_validate(doc, method=None):
     ## Calculate Item Rate If Customer Tax Type Is Commercial
     if doc.tax_type == "Commercial":
         doc.set("taxes", [])
-        #if doc.edit_items_rate_discount:
+        # if doc.edit_items_rate_discount:
         for d in doc.items:
             if d.item_tax_template:
-                item_tax_rate = float(frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template}, "tax_rate"))
+                item_tax_rate = float(
+                    frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template}, "tax_rate"))
                 if item_tax_rate > 0:
                     if d.discount_percentage:
                         new_rate = (d.price_list_rate + (item_tax_rate * d.price_list_rate / 100))
@@ -1057,8 +1124,10 @@ def siv_validate(doc, method=None):
             doc.grand_total = totals - doc.discount_amount
             doc.rounded_total = totals - doc.discount_amount
             doc.base_rounded_total = totals - doc.discount_amount
-            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),doc.currency)
-            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
+            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),
+                                          doc.currency)
+            doc.base_in_words = money_in_words(
+                doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals - doc.discount_amount
             doc.net_total = totals - doc.discount_amount
             doc.base_net_total = totals - doc.discount_amount
@@ -1071,8 +1140,10 @@ def siv_validate(doc, method=None):
             doc.grand_total = totals
             doc.rounded_total = totals
             doc.base_rounded_total = totals
-            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),doc.currency)
-            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
+            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),
+                                          doc.currency)
+            doc.base_in_words = money_in_words(
+                doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals
             doc.net_total = totals
             doc.base_net_total = totals
@@ -1083,24 +1154,29 @@ def siv_validate(doc, method=None):
 
 @frappe.whitelist()
 def siv_on_submit(doc, method=None):
+    '''
     for d in doc.items:
-        warehouse_type = frappe.db.get_value("Warehouse", d.warehouse,"warehouse_type")
-        if d.stock_qty > d.actual_qty and warehouse_type != "فحص مردود مبيعات" and doc.update_stock ==1:
-            frappe.throw("الكمية عير متاحة للصنف {0} في الصف رقم {1}".format(d.item_code,d.idx))
-    #doc.ignore_pricing_rule = 0
+        warehouse_type = frappe.db.get_value("Warehouse", d.warehouse, "warehouse_type")
+        if d.stock_qty > d.actual_qty and warehouse_type != "فحص مردود مبيعات" and doc.update_stock == 1:
+            frappe.throw("الكمية عير متاحة للصنف {0} في الصف رقم {1}".format(d.item_code, d.idx))
+    '''
+    # doc.ignore_pricing_rule = 0
     if doc.stock_entry:
-        frappe.db.sql(""" update `tabStock Entry` set sales_invoice_status = 'Submitted' where name = '{stock_entry}' """.format(invoice=doc.name,stock_entry=doc.stock_entry))
+        frappe.db.sql(
+            """ update `tabStock Entry` set sales_invoice_status = 'Submitted' where name = '{stock_entry}' """.format(
+                invoice=doc.name, stock_entry=doc.stock_entry))
 
     if doc.tax_type == "Commercial":
         doc.set("taxes", [])
-        #if doc.edit_items_rate_discount:
+        # if doc.edit_items_rate_discount:
         for d in doc.items:
             if d.item_tax_template:
-                item_tax_rate = int(frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template},"tax_rate"))
-                if item_tax_rate > 0 and d.rate <= d.price_list_rate :
+                item_tax_rate = int(
+                    frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template}, "tax_rate"))
+                if item_tax_rate > 0 and d.rate <= d.price_list_rate:
                     if d.discount_percentage:
-                        new_rate = ( d.price_list_rate + (item_tax_rate * d.price_list_rate / 100) )
-                        new_discounted_rate = new_rate - (d.discount_percentage* new_rate / 100)
+                        new_rate = (d.price_list_rate + (item_tax_rate * d.price_list_rate / 100))
+                        new_discounted_rate = new_rate - (d.discount_percentage * new_rate / 100)
                         d.rate = new_discounted_rate
                         d.net_rate = new_discounted_rate
                         d.base_net_rate = new_discounted_rate
@@ -1118,23 +1194,26 @@ def siv_on_submit(doc, method=None):
                         d.base_amount = new_rate * d.qty
                         d.tax_rate = new_rate
                 else:
-                    new_rate = ( d.price_list_rate + (item_tax_rate * d.price_list_rate / 100) )
+                    new_rate = (d.price_list_rate + (item_tax_rate * d.price_list_rate / 100))
                     d.tax_rate = new_rate
             else:
-                item_tax_rate = frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template},"tax_rate")
-                new_rate = ( d.price_list_rate + (item_tax_rate * d.price_list_rate / 100) )
+                item_tax_rate = frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template},
+                                                    "tax_rate")
+                new_rate = (d.price_list_rate + (item_tax_rate * d.price_list_rate / 100))
                 d.tax_rate = new_rate
 
         totals = 0
         for x in doc.items:
             totals += x.amount if x.amount else 0
         if doc.additional_discount_percentage:
-            doc.total = totals 
+            doc.total = totals
             doc.grand_total = totals - doc.discount_amount
             doc.rounded_total = totals - doc.discount_amount
             doc.base_rounded_total = totals - doc.discount_amount
-            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),doc.currency)
-            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
+            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),
+                                          doc.currency)
+            doc.base_in_words = money_in_words(
+                doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals - doc.discount_amount
             doc.net_total = totals - doc.discount_amount
             doc.base_net_total = totals - doc.discount_amount
@@ -1147,8 +1226,10 @@ def siv_on_submit(doc, method=None):
             doc.grand_total = totals
             doc.rounded_total = totals
             doc.base_rounded_total = totals
-            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
-            doc.base_in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
+            doc.in_words = money_in_words(doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total),
+                                          doc.currency)
+            doc.base_in_words = money_in_words(
+                doc.disable_rounded_total and abs(doc.grand_total) or abs(doc.rounded_total), doc.currency)
             doc.base_grand_total = totals
             doc.net_total = totals
             doc.base_net_total = totals
@@ -1229,7 +1310,6 @@ def siv_on_submit(doc, method=None):
 
     ### migration to tax instance
     if doc.tax_type == "Taxable" and doc.naming_series == "INV-":
-        
         data = {}
         data["doctype"] = "Sales Invoice"
         data["serial"] = doc.name
@@ -1259,38 +1339,38 @@ def siv_on_submit(doc, method=None):
         data["update_stock"] = 1
         data["set_warehouse"] = "مخزن رئيسي - CA"
         data["payment_terms_template"] = doc.payment_terms_template
-        #data["taxes_and_charges"] = "Default Tax Template"
+        # data["taxes_and_charges"] = "Default Tax Template"
         data["tc_name"] = doc.tc_name
         data["sales_partner"] = "ahmed"
         data["apply_discount_on"] = "Net Total"
         data["additional_discount_percentage"] = doc.additional_discount_percentage
-        #data["total_taxes_and_charges"] = doc.total_taxes_and_charges
+        # data["total_taxes_and_charges"] = doc.total_taxes_and_charges
         data["discount_amount"] = doc.discount_amount
 
         child_data_1 = frappe.db.get_list('Sales Invoice Item', filters={'parent': doc.name}, order_by='idx',
-                                      fields=[
-                                          'item_code',
-                                          'item_name',
-                                          'qty',
-                                          'stock_uom',
-                                          'uom',
-                                          'conversion_factor',
-                                          'stock_qty',
-                                          'price_list_rate',
-                                          'base_price_list_rate',
-                                          'margin_type',
-                                          'margin_rate_or_amount',
-                                          'rate_with_margin',
-                                          'discount_percentage',
-                                          'discount_amount',
-                                          'base_rate_with_margin',
-                                          'rate',
-                                          'item_tax_rate',
-                                          'amount',
-                                          'item_tax_template',
-                                          'base_rate',
-                                          'base_amount',
-                                      ])
+                                          fields=[
+                                              'item_code',
+                                              'item_name',
+                                              'qty',
+                                              'stock_uom',
+                                              'uom',
+                                              'conversion_factor',
+                                              'stock_qty',
+                                              'price_list_rate',
+                                              'base_price_list_rate',
+                                              'margin_type',
+                                              'margin_rate_or_amount',
+                                              'rate_with_margin',
+                                              'discount_percentage',
+                                              'discount_amount',
+                                              'base_rate_with_margin',
+                                              'rate',
+                                              'item_tax_rate',
+                                              'amount',
+                                              'item_tax_template',
+                                              'base_rate',
+                                              'base_amount',
+                                          ])
         data['items'] = [child_data_1]
 
         child_data_2 = frappe.db.get_list('Sales Taxes and Charges', filters={'parent': doc.name}, order_by='idx',
@@ -1331,17 +1411,17 @@ def siv_on_submit(doc, method=None):
         '''
 
         url = 'https://system.classatrading.com/api/method/classa_taxable.functions.sales_invoice_add'
-        headers = {'content-type': 'application/json; charset=utf-8','Accept': 'application/json', 'Authorization':'token 1aac25006d5422a:3ad3ead24dee921'}
+        headers = {'content-type': 'application/json; charset=utf-8', 'Accept': 'application/json',
+                   'Authorization': 'token 1aac25006d5422a:3ad3ead24dee921'}
         response = requests.post(url, json=data, headers=headers)
         frappe.msgprint(response.text)
-        #doc.db_set('taxable_no', response.text, commit=True)
-        #frappe.msgprint(data)
-        #todo = frappe.get_doc('ToDo')
-        #todo.description = data
-        #todo.save()
+        # doc.db_set('taxable_no', response.text, commit=True)
+        # frappe.msgprint(data)
+        # todo = frappe.get_doc('ToDo')
+        # todo.description = data
+        # todo.save()
 
-
-    #Accounting Periods
+    # Accounting Periods
     accounting_periods = frappe.db.sql("""
                                     SELECT
                                         `tabAccounting Period`.start_date as start,
@@ -1357,13 +1437,15 @@ def siv_on_submit(doc, method=None):
         if getdate(x.start) <= getdate(doc.posting_date) and getdate(x.end) >= getdate(doc.posting_date):
             frappe.throw("لا يمكن تسجيل فواتير خلال الفترات المحاسبية المغلقة")
 
-          
 
 @frappe.whitelist()
 def siv_on_cancel(doc, method=None):
     if doc.stock_entry:
-        frappe.db.sql(""" update `tabStock Entry` set sales_invoice_status = 'Cancelled' where name = '{stock_entry}' """.format(invoice=doc.name,stock_entry=doc.stock_entry))
-        frappe.db.sql(""" update `tabStock Entry` set sales_invoice = Null where name = '{stock_entry}' """.format(invoice=doc.name,stock_entry=doc.stock_entry))
+        frappe.db.sql(
+            """ update `tabStock Entry` set sales_invoice_status = 'Cancelled' where name = '{stock_entry}' """.format(
+                invoice=doc.name, stock_entry=doc.stock_entry))
+        frappe.db.sql(""" update `tabStock Entry` set sales_invoice = Null where name = '{stock_entry}' """.format(
+            invoice=doc.name, stock_entry=doc.stock_entry))
     if doc.tax_type == "Taxable":
         headersAPI = {
             'accept': 'application/json',
@@ -1372,17 +1454,16 @@ def siv_on_cancel(doc, method=None):
         link = "https://system.classatrading.com/api/method/classa_taxable.functions.sales_invoice_cancel?si=" + doc.name
         response = requests.get(link, headers=headersAPI)
 
-    #if doc.sell_to_employees:
-        #pe_name = frappe.db.sql(""" select parent as parent from `tabPayment Entry Reference` where reference_name = '{invoice}' """.format(invoice=doc.name),as_dict=1)
-        #for g in pe_name :
-        #    pe = frappe.get_doc('Payment Entry', g.parent)
-        #    frappe.throw(pe)
-        #loan = frappe.db.get_value('Loan', {'invoice': doc.name}, ['name'])
-        #loan1 = frappe.get_doc('Loan', loan) 
-        #loan1.cancel()
+    # if doc.sell_to_employees:
+    # pe_name = frappe.db.sql(""" select parent as parent from `tabPayment Entry Reference` where reference_name = '{invoice}' """.format(invoice=doc.name),as_dict=1)
+    # for g in pe_name :
+    #    pe = frappe.get_doc('Payment Entry', g.parent)
+    #    frappe.throw(pe)
+    # loan = frappe.db.get_value('Loan', {'invoice': doc.name}, ['name'])
+    # loan1 = frappe.get_doc('Loan', loan)
+    # loan1.cancel()
 
-
-    #Accounting Periods
+    # Accounting Periods
     accounting_periods = frappe.db.sql("""
                                     SELECT
                                         `tabAccounting Period`.start_date as start,
@@ -1402,16 +1483,21 @@ def siv_on_cancel(doc, method=None):
 @frappe.whitelist()
 def siv_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def siv_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def siv_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def siv_on_update(doc, method=None):
     pass
-
 
 
 ################ Payment Entry
@@ -1422,11 +1508,14 @@ def pe_before_insert(doc, method=None):
         doc.paid_to = frappe.db.get_value("Mode of Payment Account", {'parent': doc.mode_of_payment_2},
                                           'default_account')
 
+
 @frappe.whitelist()
 def pe_onload(doc, method=None):
     if doc.payment_type == "Internal Transfer":
         doc.paid_to = frappe.db.get_value("Mode of Payment Account", {'parent': doc.mode_of_payment_2},
                                           'default_account')
+
+
 @frappe.whitelist()
 def pe_before_validate(doc, method=None):
     ## Fetch Sales Persons
@@ -1435,10 +1524,10 @@ def pe_before_validate(doc, method=None):
         employee = frappe.db.get_value("Employee", {'user_id': user}, "name")
         customer_group = frappe.db.get_value("Customer", doc.party, "customer_group")
         current_sales_person = frappe.db.get_value("Sales Person", {'employee': employee}, "name")
-        #if current_sales_person:
-            #doc.sales_person = current_sales_person
+        # if current_sales_person:
+        # doc.sales_person = current_sales_person
         if not current_sales_person and not doc.sales_person and doc.mode_of_payment != "مشتريات عاملين":
-            #frappe.throw(" قم باختيار مندوب البيع")
+            # frappe.throw(" قم باختيار مندوب البيع")
             pass
         doc.sales_supervisor = frappe.db.get_value("Sales Person", doc.sales_person, "parent_sales_person")
         doc.territory_manager = frappe.db.get_value("Customer", doc.party, "sales_person")
@@ -1470,7 +1559,12 @@ def pe_before_validate(doc, method=None):
         y.cost_center = doc.cost_center
 
     if doc.payment_type == "Internal Transfer":
-        doc.paid_to = frappe.db.get_value("Mode of Payment Account", {'parent': doc.mode_of_payment_2}, 'default_account')
+        doc.paid_to = frappe.db.get_value("Mode of Payment Account", {'parent': doc.mode_of_payment_2},
+                                          'default_account')
+
+    if doc.mode_of_payment_type == "Cheque":
+        doc.current_mode_of_payment = doc.mode_of_payment
+
 
 @frappe.whitelist()
 def pe_validate(doc, method=None):
@@ -1489,36 +1583,53 @@ def pe_validate(doc, method=None):
 @frappe.whitelist()
 def pe_on_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pe_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pe_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pe_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pe_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pe_on_update(doc, method=None):
     pass
+
 
 ################ Material Request
 
 @frappe.whitelist()
 def mr_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def mr_before_validate(doc, method=None):
     ## Fetch Accounting Dimensions In Taxes Table
     for y in doc.items:
         y.from_warehouse = doc.set_from_warehouse
         y.warehouse = doc.set_warehouse
+
+
 @frappe.whitelist()
 def mr_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def mr_on_submit(doc, method=None):
     user = frappe.session.user
@@ -1558,29 +1669,41 @@ def mr_on_submit(doc, method=None):
             frappe.msgprint(" تم إنشاء حركة مخزنية بحالة مسودة رقم " + new_doc.name)
         else:
             frappe.msgprint(" Stock Entry record " + new_doc.name + " created ")
-            #frappe.msgprint(_("Stock Entry record {0} created").format("<a href='https://erp.classatrading.com/app/stock-entry/{0}'>{0}</a>").format(x))
+            # frappe.msgprint(_("Stock Entry record {0} created").format("<a href='https://erp.classatrading.com/app/stock-entry/{0}'>{0}</a>").format(x))
+
 
 @frappe.whitelist()
 def mr_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def mr_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def mr_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def mr_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def mr_on_update(doc, method=None):
     pass
+
 
 ################ Purchase Order
 
 @frappe.whitelist()
 def po_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def po_before_validate(doc, method=None):
     ## Fetch Cost Center From Supplier Group
@@ -1656,7 +1779,6 @@ def po_before_validate(doc, method=None):
             doc.outstanding_amount = totals
             doc.total_taxes_and_charges = 0
 
-
     ## Remove Taxes Table
     for d in doc.taxes:
         account_type = frappe.db.get_value("Account", d.account_head, "account_type")
@@ -1664,12 +1786,14 @@ def po_before_validate(doc, method=None):
             doc.set("taxes", [])
 
     ## Calculate Taxes Table
-    if doc.tax_type == "Taxable" and (doc.purchase_request_type == "Local" or doc.purchase_request_type == "Spare Parts"):
+    if doc.tax_type == "Taxable" and (
+            doc.purchase_request_type == "Local" or doc.purchase_request_type == "Spare Parts"):
         doc.set("taxes", [])
         new_taxes = 0
         for d in doc.items:
             if d.item_tax_template:
-                item_tax_rate = frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template}, "tax_rate")
+                item_tax_rate = frappe.db.get_value("Item Tax Template Detail", {'parent': d.item_tax_template},
+                                                    "tax_rate")
                 d.tax_amount = d.net_amount * item_tax_rate / 100
                 new_taxes += d.tax_amount
 
@@ -1679,7 +1803,6 @@ def po_before_validate(doc, method=None):
         taxes1.charge_type = "On Net Total"
         taxes1.account_head = "2301 - ضريبة القيمة المضافة VAT - CA"
         taxes1.description = "2301 - ضريبة القيمة المضافة VAT"
-
 
         if doc.ci_profits == "1%":
             taxes2 = doc.append("taxes", {})
@@ -1708,33 +1831,49 @@ def po_before_validate(doc, method=None):
             taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
             taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
 
+
 @frappe.whitelist()
 def po_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def po_on_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def po_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def po_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def po_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def po_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def po_on_update(doc, method=None):
     pass
+
 
 ################ Purchase Receipt
 
 @frappe.whitelist()
 def pr_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pr_before_validate(doc, method=None):
     ##fetch_tax_type_from_Supplier
@@ -1822,7 +1961,6 @@ def pr_before_validate(doc, method=None):
         taxes1.account_head = "2301 - ضريبة القيمة المضافة VAT - CA"
         taxes1.description = "2301 - ضريبة القيمة المضافة VAT"
 
-
         if doc.ci_profits == "1%":
             taxes2 = doc.append("taxes", {})
             taxes2.category = "Total"
@@ -1849,25 +1987,38 @@ def pr_before_validate(doc, method=None):
             taxes2.rate = 5
             taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
             taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
-            
+
+
 @frappe.whitelist()
 def pr_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pr_on_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pr_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pr_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pr_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pr_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def pr_on_update(doc, method=None):
     pass
@@ -1878,6 +2029,8 @@ def pr_on_update(doc, method=None):
 @frappe.whitelist()
 def piv_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def piv_before_validate(doc, method=None):
     '''
@@ -1965,7 +2118,8 @@ def piv_before_validate(doc, method=None):
             doc.set("taxes", [])
 
     ## Calculate Taxes Table
-    if doc.tax_type == "Taxable" and (doc.purchase_request_type == "Local" or doc.purchase_request_type == "Spare Parts"):
+    if doc.tax_type == "Taxable" and (
+            doc.purchase_request_type == "Local" or doc.purchase_request_type == "Spare Parts"):
         doc.set("taxes", [])
         new_taxes = 0
         for d in doc.items:
@@ -2010,7 +2164,6 @@ def piv_before_validate(doc, method=None):
             taxes2.account_head = "2302 - ارباح تجارية وصناعية - موردين - CA"
             taxes2.description = "2302 - ارباح تجارية وصناعية - موردين"
 
-
     ## Fetch Cost Center From Supplier Group
     supplier_group = frappe.db.get_value("Supplier", doc.supplier, "supplier_group")
     doc.cost_center = frappe.db.get_value("Supplier Group", supplier_group, "cost_center")
@@ -2024,6 +2177,7 @@ def piv_before_validate(doc, method=None):
         y.department = doc.department
         y.cost_center = doc.cost_center
 
+
 @frappe.whitelist()
 def piv_validate(doc, method=None):
     ##fetch_tax_type_from_Supplier
@@ -2033,6 +2187,7 @@ def piv_validate(doc, method=None):
 
     else:
         pass
+
 
 @frappe.whitelist()
 def piv_on_submit(doc, method=None):
@@ -2091,65 +2246,93 @@ def piv_on_submit(doc, method=None):
             doc.outstanding_amount = totals
             doc.total_taxes_and_charges = 0
 
+
 @frappe.whitelist()
 def piv_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def piv_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def piv_before_save(doc, method=None):
     pass
 
+
 @frappe.whitelist()
 def piv_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def piv_on_update(doc, method=None):
     pass
+
 
 ################ Employee Advance
 
 @frappe.whitelist()
 def emad_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def emad_before_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def emad_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def emad_on_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def emad_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def emad_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def emad_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def emad_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def emad_on_update(doc, method=None):
     pass
+
 
 ################ Expense Claim
 
 @frappe.whitelist()
 def excl_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def excl_before_validate(doc, method=None):
     ## Fetch Vehicle From Vehicle Log
     doc.vehicle = frappe.db.get_value("Vehicle Log", doc.vehicle_log, "license_plate")
 
     ## Fetch Cost Center From Department
-    #doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
+    # doc.cost_center = frappe.db.get_value("Department", doc.department, "payroll_cost_center")
 
     ## Fetch Accounting Dimensions In Expenses Table
     for x in doc.expenses:
@@ -2169,31 +2352,46 @@ def excl_before_validate(doc, method=None):
 @frappe.whitelist()
 def excl_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def excl_on_submit(doc, method=None):
     if doc.workflow_state == "Accounts Manager Approved" and doc.grand_total == 0:
         frappe.throw(" من فضلك اعتمد المبلغ ")
+
+
 @frappe.whitelist()
 def excl_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def excl_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def excl_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def excl_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def excl_on_update(doc, method=None):
     pass
+
 
 ################ Stock Entry
 
 @frappe.whitelist()
 def ste_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def ste_before_validate(doc, method=None):
     stock_entry_type_account = frappe.db.get_value('Stock Entry Type', {'name': doc.stock_entry_type}, 'account')
@@ -2212,7 +2410,7 @@ def ste_before_validate(doc, method=None):
         for x in doc.items:
             if not x.so_item:
                 frappe.throw("Row #" + str(x.idx) + ": لا يمكن اضافة اصناف يدويا غير موجوده بامر البيع ")
-        #doc.save()
+        # doc.save()
 
     ## Fetch Vehcile From Target Warehouse
     doc.vehicle = frappe.db.get_value("Warehouse", doc.to_warehouse, "vehicle")
@@ -2237,25 +2435,29 @@ def ste_before_validate(doc, method=None):
         x.department = doc.department
         x.cost_center = doc.cost_center
 
+
 @frappe.whitelist()
 def ste_validate(doc, method=None):
     for d in doc.items:
         d.barcode = frappe.db.get_value("Item Barcode", {'parent': d.item_code}, "barcode")
+
+
 @frappe.whitelist()
 def ste_on_submit(doc, method=None):
     for d in doc.items:
-        warehouse_type = frappe.db.get_value("Warehouse", d.s_warehouse,"warehouse_type")
-        if d.transfer_qty > d.actual_qty and warehouse_type != "فحص مردود مبيعات":
-            frappe.throw("الكمية عير متاحة للصنف {0} في الصف رقم {1}".format(d.item_code,d.idx))
+        #warehouse_type = frappe.db.get_value("Warehouse", d.s_warehouse, "warehouse_type")
+        #if d.transfer_qty > d.actual_qty and warehouse_type != "فحص مردود مبيعات":
+        #    frappe.throw("الكمية عير متاحة للصنف {0} في الصف رقم {1}".format(d.item_code, d.idx))
         so_ite = d.so_item
-        #so_qt = d.qty
-        frappe.db.sql(""" update `tabSales Order Item` set st_item = '{st_item}' where name = '{so_ite}' """.format(st_item=d.name,so_ite=so_ite))
-        frappe.db.sql(""" update `tabSales Order Item` set st_qty = '{st_qty}' where name = '{so_ite}' """.format(st_qty=d.qty,so_ite=so_ite))
-    #if doc.sales_order:
+        # so_qt = d.qty
+        frappe.db.sql(""" update `tabSales Order Item` set st_item = '{st_item}' where name = '{so_ite}' """.format(
+            st_item=d.name, so_ite=so_ite))
+        frappe.db.sql(
+            """ update `tabSales Order Item` set st_qty = '{st_qty}' where name = '{so_ite}' """.format(st_qty=d.qty,
+                                                                                                        so_ite=so_ite))
+    # if doc.sales_order:
     #    frappe.db_set_value('Sales Order', doc.sales_order, 'se_submitted', 1)
 
-
-    
     ## Auto Create Draft Sales Invoice On Submit
     if doc.sales_order:
         so = frappe.get_doc('Sales Order', doc.sales_order)
@@ -2370,53 +2572,80 @@ def ste_on_submit(doc, method=None):
         new_doc.insert(ignore_permissions=True)
         doc.sales_invoice = new_doc.name
         frappe.msgprint(new_doc.name + " تم إنشاء فاتورة مبيعات بحالة مسودة رقم ")
-    
+
 
 @frappe.whitelist()
 def ste_on_cancel(doc, method=None):
     for d in doc.items:
         so_ite = d.so_item
-        frappe.db.sql(""" update `tabSales Order Item` set st_item = '' where name = '{so_ite}'""".format(st_item=d.name,so_ite=so_ite))
+        frappe.db.sql(
+            """ update `tabSales Order Item` set st_item = '' where name = '{so_ite}'""".format(st_item=d.name,
+                                                                                                so_ite=so_ite))
     pass
+
+
 @frappe.whitelist()
 def ste_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def ste_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def ste_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def ste_on_update(doc, method=None):
     pass
+
 
 ################ Blanket Order
 
 @frappe.whitelist()
 def blank_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def blank_before_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def blank_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def blank_on_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def blank_on_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def blank_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def blank_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def blank_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def blank_on_update(doc, method=None):
     pass
@@ -2427,12 +2656,18 @@ def blank_on_update(doc, method=None):
 @frappe.whitelist()
 def loan_onload(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def loan_before_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def loan_validate(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def loan_on_submit(doc, method=None):
     if doc.loan_type == "مشتريات" or doc.loan_type == "عجز مناديب":
@@ -2453,22 +2688,34 @@ def loan_on_submit(doc, method=None):
         dis.disbursed_amount = doc.loan_amount
         dis.insert(ignore_permissions=True)
 
+
 @frappe.whitelist()
 def loan_on_cancel(doc, method=None):
-    #ld =  frappe.db.get_value('Loan Disbursement', {'against_loan': doc.name}, ['name'])    
-    #ld1 = frappe.get_doc('Loan Disbursement',ld)
-    #ld1.cancel()  
+    # ld =  frappe.db.get_value('Loan Disbursement', {'against_loan': doc.name}, ['name'])
+    # ld1 = frappe.get_doc('Loan Disbursement',ld)
+    # ld1.cancel()
     pass
-     
+
+
 @frappe.whitelist()
 def loan_on_update_after_submit(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def loan_before_save(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def loan_before_cancel(doc, method=None):
     pass
+
+
 @frappe.whitelist()
 def loan_on_update(doc, method=None):
+    pass
+
+@frappe.whitelist()
+def address_before_insert(doc, method=None):
     pass

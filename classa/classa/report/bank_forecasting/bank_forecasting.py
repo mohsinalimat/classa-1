@@ -41,6 +41,7 @@ def get_columns():
             "fieldtype": "Currency",
             "width": 130
         },
+        
         {
             "label": _("دائن"),
             "fieldname": "outgoing",
@@ -97,7 +98,7 @@ def get_item_price_qty_data(filters):
 
             accounto = item_dict.account
             incoming = frappe.db.sql(""" select 
-                                                ifnull(sum(`tabGL Entry`.debit), 0) as debit
+                                                ifnull(sum(`tabGL Entry`.debit_in_account_currency), 0) as debit
                                            from 
                                                 `tabGL Entry`
                                            where 
@@ -109,7 +110,7 @@ def get_item_price_qty_data(filters):
             data['incoming'] = incoming[0][0]
 
             outgoing = frappe.db.sql(""" select 
-                                                ifnull(sum(`tabGL Entry`.credit), 0) as credit
+                                                ifnull(sum(`tabGL Entry`.credit_in_account_currency), 0) as credit
                                            from 
                                                 `tabGL Entry`
                                            where 
@@ -134,6 +135,7 @@ def get_item_price_qty_data(filters):
                                        """.format(accounto=accounto, from_date=from_date, to_date=to_date),as_dict=0)
 
             data['receivable'] = receivable[0][0]
+
 
             payable = frappe.db.sql(""" select 
                                             ifnull(sum(`tabPayment Entry`.paid_amount), 0) as paid_amount

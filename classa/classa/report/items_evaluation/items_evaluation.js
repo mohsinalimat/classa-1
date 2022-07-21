@@ -17,6 +17,12 @@ frappe.query_reports["Items Evaluation"] = {
 			options: "Item Group",
 		},
 		{
+			fieldname: "parent_item_group",
+			label: __("Parent Item Group"),
+			fieldtype: "Select",
+			options: ["","سلع مستوردة", "سلع محلية"],
+		},
+		{
 			fieldname: "from_date",
 			label: __("From Date"),
 			fieldtype: "Date",

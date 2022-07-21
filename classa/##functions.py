@@ -5,9 +5,11 @@ from frappe import auth
 import datetime
 import json, ast
 from erpnext.accounts.utils import get_balance_on
+from erpnext.stock.doctype.repost_item_valuation.repost_item_valuation import repost_entries
 
 @frappe.whitelist()
 def hourly_event():
+    #erpnext.stock.doctype.repost_item_valuation.repost_item_valuation.repost_entries
     frappe.db.sql("""
         update `tabSales Invoice` join `tabCustomer` on `tabSales Invoice`.customer = `tabCustomer`.name
         set `tabSales Invoice`.customer_group = `tabCustomer`.customer_group
@@ -37,6 +39,10 @@ def hourly_event():
         update `tabSales Invoice Item` join `tabSales Invoice` on `tabSales Invoice`.name = `tabSales Invoice Item`.parent
         set `tabSales Invoice Item`.branch = `tabSales Invoice`.branch
     """)
+    frappe.db.sql("""
+    update `tabGL Entry` join `tabJournal Entry` on `tabGL Entry`.voucher_no = `tabJournal Entry`.name join `tabJournal Entry Account` on `tabJournal Entry`.name = `tabJournal Entry Account`.parent set `tabGL Entry`.description = `tabJournal Entry Account`.description
+    """)
 
 def all_event():
-    pass
+    repost_entries()
+    #pass

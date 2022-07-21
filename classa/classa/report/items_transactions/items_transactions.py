@@ -278,4 +278,3 @@ def get_item_price_qty_data(filters):
 
             result.append(data)
     return result
-

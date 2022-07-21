@@ -125,8 +125,8 @@ def get_item_price_qty_data(filters):
 			FROM
 				`tabSales Person`
 			WHERE
-				`tabSales Person`.is_group = 0
-				and `tabSales Person`.enabled = 1
+				
+				`tabSales Person`.enabled = 1
 				{conditions}
 
 			ORDER BY (select sum(grand_total) 

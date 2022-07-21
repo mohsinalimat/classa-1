@@ -42,6 +42,12 @@ def get_columns(filters):
                 "width": 160
             },
             {
+                "label": _("Parent Item Group"),
+                "fieldname": "parent_item_group",
+                "fieldtype": "Data",
+                "width": 160
+            },
+            {
                 "label": _("قطعة"),
                 "fieldname": "qty",
                 "fieldtype": "Float",
@@ -224,6 +230,12 @@ def get_columns(filters):
                 "width": 160
             },
             {
+                "label": _("Parent Item Group"),
+                "fieldname": "parent_item_group",
+                "fieldtype": "Data",
+                "width": 160
+            },
+            {
                 "label": _("قطعة"),
                 "fieldname": "stock_qty",
                 "fieldtype": "Float",
@@ -322,8 +334,6 @@ def get_columns(filters):
             }
         ]
 
-    
-
 
 def get_data(filters, columns):
     item_price_qty_data = []
@@ -332,14 +342,16 @@ def get_data(filters, columns):
 
 
 def get_item_price_qty_data(filters):
-    
-
     if filters.get('group_by_item'):
         conditions = ""
         if filters.get("item_code"):
             conditions += "and `tabSales Invoice Item`.item_code = %(item_code)s"
         if filters.get("item_group"):
             conditions += "and `tabSales Invoice Item`.item_group = %(item_group)s"
+        if filters.get("parent_item_group") == "سلع محلية":
+            conditions += "and `tabItem Group`.parent_item_group in ('فود لاين','سلع محلية', 'اوليـــــــس','ماجيستك')"
+        if filters.get("parent_item_group") == "سلع مستوردة":
+            conditions += "and `tabItem Group`.parent_item_group = 'سلع مستوردة' "
         if filters.get("from_date"):
             conditions += " and `tabSales Invoice`.posting_date>=%(from_date)s"
         if filters.get("to_date"):
@@ -363,18 +375,20 @@ def get_item_price_qty_data(filters):
         item_results2 = frappe.db.sql("""
                     SELECT distinct
                         `tabSales Invoice Item`.item_code as item_code,
+                        `tabItem Group`.parent_item_group as parent_item_group,
                         `tabSales Invoice Item`.item_name as item_name,
                         `tabSales Invoice Item`.stock_uom as stock_uom,
                         `tabSales Invoice Item`.item_group as item_group,
                         `tabSales Invoice Item`.barcode as barcode,
                         (select ifnull(conversion_factor, 1) from `tabUOM Conversion Detail` where uom = 'كرتونه' and parent = `tabSales Invoice Item`.item_code) as carton_cf
-    
+
                     FROM
-                        `tabSales Invoice Item` join `tabSales Invoice` on `tabSales Invoice`.name = `tabSales Invoice Item`.parent
+                        `tabSales Invoice Item` join `tabSales Invoice` on `tabSales Invoice`.name = `tabSales Invoice Item`.parent join `tabItem Group` on `tabItem Group`.name = `tabSales Invoice Item`.item_group
+
                     WHERE
                         `tabSales Invoice`.docstatus = 1
                         {conditions}           
-    
+
                     Group BY `tabSales Invoice Item`.item_code
                     """.format(conditions=conditions), filters, as_dict=1)
 
@@ -383,6 +397,7 @@ def get_item_price_qty_data(filters):
             for item_dict in item_results2:
                 data = {
                     'item_code': item_dict.item_code,
+                    'parent_item_group': item_dict.parent_item_group,
                     'item_name': item_dict.item_name,
                     'item_group': item_dict.item_group,
                     'barcode': item_dict.barcode,
@@ -391,12 +406,12 @@ def get_item_price_qty_data(filters):
                 }
                 details = frappe.db.sql("""
                         SELECT 
-    
+
                             sum(`tabSales Invoice Item`.stock_qty) as qty,
                             sum(`tabSales Invoice Item`.amount) as amount
-    
+
                         FROM
-                            `tabSales Invoice Item`  join `tabSales Invoice` on `tabSales Invoice`.name = `tabSales Invoice Item`.parent
+                            `tabSales Invoice Item`  join `tabSales Invoice` on `tabSales Invoice`.name = `tabSales Invoice Item`.parent join `tabItem Group` on `tabItem Group`.name = `tabSales Invoice Item`.item_group
                         WHERE 
                             `tabSales Invoice Item`.item_code = '{name}'
                             and `tabSales Invoice`.docstatus = 1
@@ -426,8 +441,6 @@ def get_item_price_qty_data(filters):
 
                 result2.append(data)
         return result2
-
-    
 
     if filters.get('group_by_customer'):
         conditions = ""
@@ -492,7 +505,8 @@ def get_item_price_qty_data(filters):
                             `tabSales Invoice`.customer = '{customer}'
                             and `tabSales Invoice`.docstatus = 1
                             {conditions} {main_conditions}
-                        """.format(customer=item_dict.customer, conditions=conditions,main_conditions=main_conditions), filters, as_dict=1)
+                        """.format(customer=item_dict.customer, conditions=conditions, main_conditions=main_conditions),
+                                        filters, as_dict=1)
 
                 details1 = frappe.db.sql("""
                                         SELECT 
@@ -517,9 +531,6 @@ def get_item_price_qty_data(filters):
 
                 result2.append(data)
         return result2
-
-
-
 
     if filters.get('group_by_customer_group'):
         conditions = ""
@@ -553,7 +564,7 @@ def get_item_price_qty_data(filters):
         item_results2 = frappe.db.sql("""
                     SELECT distinct
                         `tabSales Invoice`.customer_group as customer_group
-                       
+
                     FROM
                         `tabSales Invoice`
                     WHERE
@@ -581,7 +592,8 @@ def get_item_price_qty_data(filters):
                             `tabSales Invoice`.customer_group = '{customer_group}'
                             and `tabSales Invoice`.docstatus = 1
                             {conditions} {main_conditions}
-                        """.format(customer_group=item_dict.customer_group, conditions=conditions,main_conditions=main_conditions), filters, as_dict=1)
+                        """.format(customer_group=item_dict.customer_group, conditions=conditions,
+                                   main_conditions=main_conditions), filters, as_dict=1)
 
                 details1 = frappe.db.sql("""
                                         SELECT 
@@ -606,8 +618,6 @@ def get_item_price_qty_data(filters):
 
                 result2.append(data)
         return result2
-
-
 
     if filters.get('group_by_sales_person'):
         conditions = ""
@@ -641,7 +651,7 @@ def get_item_price_qty_data(filters):
         item_results2 = frappe.db.sql("""
                     SELECT distinct
                         `tabSales Invoice`.sales_person as sales_person
-                       
+
                     FROM
                         `tabSales Invoice`
                     WHERE
@@ -669,7 +679,8 @@ def get_item_price_qty_data(filters):
                             `tabSales Invoice`.sales_person = '{sales_person}'
                             and `tabSales Invoice`.docstatus = 1
                             {conditions} {main_conditions}
-                        """.format(sales_person=item_dict.sales_person, conditions=conditions,main_conditions=main_conditions), filters, as_dict=1)
+                        """.format(sales_person=item_dict.sales_person, conditions=conditions,
+                                   main_conditions=main_conditions), filters, as_dict=1)
 
                 details1 = frappe.db.sql("""
                                         SELECT 
@@ -694,7 +705,6 @@ def get_item_price_qty_data(filters):
 
                 result2.append(data)
         return result2
-
 
     if filters.get('group_by_branch'):
         conditions = ""
@@ -728,7 +738,7 @@ def get_item_price_qty_data(filters):
         item_results2 = frappe.db.sql("""
                     SELECT distinct
                         `tabSales Invoice`.branch as branch
-                       
+
                     FROM
                         `tabSales Invoice`
                     WHERE
@@ -756,7 +766,8 @@ def get_item_price_qty_data(filters):
                             `tabSales Invoice`.branch = '{branch}'
                             and `tabSales Invoice`.docstatus = 1
                             {conditions} {main_conditions}
-                        """.format(branch=item_dict.branch, conditions=conditions,main_conditions=main_conditions), filters, as_dict=1)
+                        """.format(branch=item_dict.branch, conditions=conditions, main_conditions=main_conditions),
+                                        filters, as_dict=1)
 
                 details1 = frappe.db.sql("""
                                         SELECT 
@@ -791,6 +802,10 @@ def get_item_price_qty_data(filters):
             conditions += "and `tabSales Invoice Item`.item_code = %(item_code)s"
         if filters.get("item_group"):
             conditions += "and `tabSales Invoice Item`.item_group = %(item_group)s"
+        if filters.get("parent_item_group") == "سلع محلية":
+            conditions += "and `tabItem Group`.parent_item_group in ('فود لاين','سلع محلية', 'اوليـــــــس','ماجيستك')"
+        if filters.get("parent_item_group") == "سلع مستوردة":
+            conditions += "and `tabItem Group`.parent_item_group = 'سلع مستوردة' "
         if filters.get("from_date"):
             conditions += " and `tabSales Invoice`.posting_date>=%(from_date)s"
         if filters.get("to_date"):
@@ -816,6 +831,7 @@ def get_item_price_qty_data(filters):
                 `tabSales Invoice Item`.item_code as item_code,
                 `tabSales Invoice Item`.item_name as item_name,
                 `tabSales Invoice Item`.item_group as item_group,
+                `tabItem Group`.parent_item_group as parent_item_group,
                 `tabSales Invoice Item`.barcode as barcode,
                 `tabSales Invoice Item`.stock_uom as stock_uom,
                 (select ifnull(conversion_factor, 1) from `tabUOM Conversion Detail` where uom = 'كرتونه' and parent = `tabSales Invoice Item`.item_code) as conversion_factor,
@@ -834,9 +850,9 @@ def get_item_price_qty_data(filters):
                 `tabSales Invoice`.territory as territory,
                 `tabSales Invoice`.sales_person as sales_person,
                 (Select `tabCustomer`.code from `tabCustomer` where `tabCustomer`.name = `tabSales Invoice`.customer) as customer_code
-                
+
             FROM
-                `tabSales Invoice` join `tabSales Invoice Item` on `tabSales Invoice Item`.parent = `tabSales Invoice`.name
+                `tabSales Invoice` join `tabSales Invoice Item` on `tabSales Invoice Item`.parent = `tabSales Invoice`.name join `tabItem Group` on `tabItem Group`.name = `tabSales Invoice Item`.item_group
             WHERE
                 `tabSales Invoice`.docstatus = 1
                 {conditions}
@@ -852,6 +868,7 @@ def get_item_price_qty_data(filters):
                     'item_code': item_dict.item_code,
                     'item_name': item_dict.item_name,
                     'item_group': item_dict.item_group,
+                    'parent_item_group': item_dict.parent_item_group,
                     'barcode': item_dict.barcode,
                     'qty': (item_dict.stock_qty / item_dict.conversion_factor) if item_dict.conversion_factor else item_dict.stock_qty,
                     'stock_uom': item_dict.stock_uom,
@@ -875,5 +892,5 @@ def get_item_price_qty_data(filters):
                 result.append(data)
         return result
 
-    
+
 

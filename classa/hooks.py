@@ -699,10 +699,10 @@ scheduler_events = {
 }
 
 
-app_include_css = "/assets/classa/css/ecs.css"
-app_include_js = "/assets/classa/js/ecs.js"
-web_include_js = "/assets/js/web_ecs.min.js"
-web_include_css = "/assets/js/web_ecs.min.css"
+#app_include_css = "/assets/classa/css/ecs.css"
+#app_include_js = "/assets/classa/js/ecs.js"
+#web_include_js = "/assets/js/web_ecs.min.js"
+#web_include_css = "/assets/js/web_ecs.min.css"
 
 
 # Includes in <head>

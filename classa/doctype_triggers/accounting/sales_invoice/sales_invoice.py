@@ -613,7 +613,7 @@ def on_submit(doc, method=None):
         headers = {'content-type': 'application/json; charset=utf-8', 'Accept': 'application/json',
                    'Authorization': 'token 1aac25006d5422a:3ad3ead24dee921'}
         response = requests.post(url, json=data, headers=headers)
-        frappe.msgprint(response.text)
+        #frappe.msgprint(response.text)
         # doc.db_set('taxable_no', response.text, commit=True)
         # frappe.msgprint(data)
         # todo = frappe.get_doc('ToDo')

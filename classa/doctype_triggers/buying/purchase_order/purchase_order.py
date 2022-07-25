@@ -1,4 +1,4 @@
-from future import unicode_literals
+from __future__ import unicode_literals
 import frappe
 from frappe import auth
 import datetime
@@ -7,7 +7,6 @@ import json, ast, requests
 from six import iteritems, string_types
 from frappe.utils import money_in_words
 import urllib.request
-
 
 @frappe.whitelist()
 def before_insert(doc, method=None):

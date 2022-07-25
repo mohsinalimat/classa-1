@@ -10,5 +10,4 @@ from erpnext.stock.doctype.repost_item_valuation.repost_item_valuation import re
 
 frappe.whitelist()
 def all():
-    repost_entries()
-    #pass
+    pass

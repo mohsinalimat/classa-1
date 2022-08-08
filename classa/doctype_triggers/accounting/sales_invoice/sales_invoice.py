@@ -10,11 +10,17 @@ import urllib.request
 
 @frappe.whitelist()
 def before_insert(doc, method=None):
-    pass
+    if doc.tax_type == "Commercial" and doc.is_new():
+        doc.naming_series = "SINV-"
+
+    if doc.tax_type == "Taxable" and doc.is_new():
+        doc.naming_series = "INV-"
+
 @frappe.whitelist()
 def after_insert(doc, method=None):
-#def share_sin(doc, method=None):permission
     pass
+#def share_sin(doc, method=None):permission
+
     '''
     if doc.customer_group:
         users = frappe.db.sql(""" select user from `tabDocShare` where share_doctype = 'Customer Group' and share_name = '{customer_group}' """.format(customer_group=doc.customer_group),as_dict=1)
@@ -31,6 +37,12 @@ def onload(doc, method=None):
     pass
 @frappe.whitelist()
 def before_validate(doc, method=None):
+    if doc.tax_type == "Commercial" and doc.is_new():
+        doc.naming_series = "SINV-"
+
+    if doc.tax_type == "Taxable" and doc.is_new():
+        doc.naming_series = "INV-"
+
     doc.ignore_pricing_rule = doc.ignore_pricing_rule_2
     # doc.update_stock = 1
     # if doc.tax_type == "Taxable":
@@ -253,6 +265,7 @@ def before_validate(doc, method=None):
 
 @frappe.whitelist()
 def validate(doc, method=None):
+    doc.invoice_no = doc.name
     for t in doc.items:
         item_price_hold = frappe.db.get_value("Item Price", {'item_code': t.item_code,'price_list': doc.selling_price_list}, "hold")
         if item_price_hold ==1 :
@@ -353,6 +366,12 @@ def validate(doc, method=None):
 
 @frappe.whitelist()
 def on_submit(doc, method=None):
+    if doc.tax_type == "Commercial" and doc.naming_series == "INV-":
+        frappe.throw("يجب إنشاء فاتورة أخرى وتغيير تسلسل الفاتورة إلى SINV")
+
+    if doc.tax_type == "Taxable" and doc.naming_series == "SINV-":
+        frappe.throw("يجب إنشاء فاتورة أخرى وتغيير تسلسل الفاتورة إلى INV")
+
     '''
     for d in doc.items:
         warehouse_type = frappe.db.get_value("Warehouse", d.warehouse, "warehouse_type")
@@ -509,6 +528,8 @@ def on_submit(doc, method=None):
 
     ### migration to tax instance
     if doc.tax_type == "Taxable" and doc.naming_series == "INV-":
+        pass
+    '''
         data = {}
         data["doctype"] = "Sales Invoice"
         data["serial"] = doc.name
@@ -586,7 +607,7 @@ def on_submit(doc, method=None):
                                           ])
         data['taxes'] = [child_data_2]
 
-        '''
+        
         item_results = frappe.db.sql("""
                                     SELECT
                                         `tabSales Taxes and Charges`.charge_type,
@@ -607,12 +628,13 @@ def on_submit(doc, method=None):
                 "description": "2301 - ضريبة القيمة المضافة VAT"
             }
         ]
-        '''
+        
 
         url = 'https://system.classatrading.com/api/method/classa_taxable.functions.sales_invoice_add'
         headers = {'content-type': 'application/json; charset=utf-8', 'Accept': 'application/json',
                    'Authorization': 'token 1aac25006d5422a:3ad3ead24dee921'}
         response = requests.post(url, json=data, headers=headers)
+    '''
         #frappe.msgprint(response.text)
         # doc.db_set('taxable_no', response.text, commit=True)
         # frappe.msgprint(data)
@@ -646,13 +668,15 @@ def on_cancel(doc, method=None):
         frappe.db.sql(""" update `tabStock Entry` set sales_invoice = Null where name = '{stock_entry}' """.format(
             invoice=doc.name, stock_entry=doc.stock_entry))
     if doc.tax_type == "Taxable":
+        pass
+    '''
         headersAPI = {
             'accept': 'application/json',
             'Authorization': 'token 1aac25006d5422a:3ad3ead24dee921',
         }
         link = "https://system.classatrading.com/api/method/classa_taxable.functions.sales_invoice_cancel?si=" + doc.name
         response = requests.get(link, headers=headersAPI)
-
+    '''
     # if doc.sell_to_employees:
     # pe_name = frappe.db.sql(""" select parent as parent from `tabPayment Entry Reference` where reference_name = '{invoice}' """.format(invoice=doc.name),as_dict=1)
     # for g in pe_name :

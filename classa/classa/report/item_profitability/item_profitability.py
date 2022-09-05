@@ -233,7 +233,11 @@ def get_item_price_qty_data(filters):
 											b.stock_qty as unit,
 											(select conversion_factor from `tabUOM Conversion Detail` where uom = 'علبه' and parent = b.item_code) as box,
 											(select conversion_factor from `tabUOM Conversion Detail` where uom = 'كرتونه' and parent = b.item_code) as carton,
-											(select max(valuation_rate) from tabBin where item_code = b.item_code order by valuation_rate limit 1 ) as value
+											(select max(valuation_rate) from 
+											tabBin join tabWarehouse on tabBin.warehouse =  tabWarehouse.name  
+											where item_code = b.item_code
+											 and tabWarehouse.warehouse_type = 'المخازن الرئيسيه'
+											order by valuation_rate limit 1 ) as value
 										from 
 											`tabSales Invoice` a join `tabSales Invoice Item` b on a.name = b.parent
 											where a.docstatus =1
@@ -263,8 +267,8 @@ def get_item_price_qty_data(filters):
 					'item_tax_template': item_dict.item_tax_template,
 					'rate': item_dict.rate,
 					'net_amount': item_dict.net_amount,
-					'cost': round((item_dict.unit* item_dict.value),2),
-					'profit': round((item_dict.net_amount - (item_dict.unit* item_dict.value)),2),
+					'cost': round((item_dict.unit* item_dict.value),2) if item_dict.unit and item_dict.value else 0 ,
+					'profit': round((item_dict.net_amount - (item_dict.unit* item_dict.value)),2) if item_dict.net_amount and item_dict.unit and item_dict.value else 0,
 					'cost_percent':  round((((item_dict.unit* item_dict.value)/ item_dict.net_amount)*100),2) if item_dict.unit and item_dict.value and item_dict.net_amount else 0,
 					'profit_percent': round((((item_dict.net_amount - (item_dict.unit* item_dict.value))/item_dict.net_amount)*100),2) if item_dict.net_amount and item_dict.unit and item_dict.value else 0,
 				}

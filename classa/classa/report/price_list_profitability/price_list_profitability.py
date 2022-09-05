@@ -1,0 +1,129 @@
+# Copyright (c) 2013, Frappe Technologies Pvt. Ltd. and contributors
+# For license information, please see license.txt
+from __future__ import unicode_literals
+import frappe
+from frappe import _
+
+def execute(filters=None):
+	columns, data = [], []
+	columns = get_columns(filters)
+	data = get_data(filters,columns)
+	return columns, data
+
+def get_columns(filters):
+	return [
+		{
+            "label": _("Item Code"),
+            "fieldname": "item_code",
+            "fieldtype": "Link",
+            "options": "Item",
+            "width": 60
+        },
+        {
+            "label": _("Barcode"),
+            "fieldname": "barcode",
+            "fieldtype": "Data",
+            "width": 150
+        },
+        {
+            "label": _("Item Name"),
+            "fieldname": "item_name",
+            "fieldtype": "Data",
+            "width": 270
+        },
+        {
+            "label": _("Item Group"),
+            "fieldname": "item_group",
+            "fieldtype": "Data",
+            "width": 120
+        },
+		{
+            "label": _("Buying Price List"),
+            "fieldname": "buying_price_list",
+            "fieldtype": "Currency",
+            "width": 120
+        },
+		{
+            "label": _("Price List A"),
+            "fieldname": "price_list_a",
+            "fieldtype": "Currency",
+            "width": 120
+        },
+		{
+			"label": _("Profit % A"),
+			"fieldname": "profit_percent_a",
+			"fieldtype": "Float",
+			"width": 80
+		},
+		{
+            "label": _("Price List B"),
+            "fieldname": "price_list_b",
+            "fieldtype": "Currency",
+            "width": 120
+        },
+		{
+			"label": _("Profit % B"),
+			"fieldname": "profit_percent_b",
+			"fieldtype": "Float",
+			"width": 80
+		},
+		{
+            "label": _("Price List C"),
+            "fieldname": "price_list_c",
+            "fieldtype": "Currency",
+            "width": 120
+        },
+		{
+			"label": _("Profit % C"),
+			"fieldname": "profit_percent_c",
+			"fieldtype": "Float",
+			"width": 80
+		}
+	]
+	
+def get_data(filters, columns):
+	item_price_qty_data = []
+	item_price_qty_data = get_item_price_qty_data(filters)
+	return item_price_qty_data
+
+def get_item_price_qty_data(filters):
+	conditions = ""
+	if filters.get("from_date"):
+		conditions += " and a.posting_date between %(from_date)s and %(to_date)s"
+	if filters.get("item_code"):
+		conditions += " and b.item_code=%(item_code)s"
+	if filters.get("customer"):
+		conditions += " and a.customer=%(customer)s"
+	if filters.get("item_group"):
+		conditions += " and b.item_group=%(item_group)s"
+	if filters.get("customer_group"):
+		conditions += " and a.customer_group=%(customer_group)s"
+	if filters.get("sales_person"):
+		conditions += " and a.sales_person=%(sales_person)s"
+	item_results = frappe.db.sql("""Select a.item_code as item_code, a.item_name as item_name,a.item_group as item_group,
+(select max(price_list_rate) from `tabItem Price` where "tabItem Price".item_code = `tabItem`.item_code and `tabItem Price`.buying = 1) as buying_price_list,
+(select price_list_rate from `tabItem Price` where `tabItem Price`.item_code = `tabItem`.item_code and price_list = "A") as price_list_a,
+(select price_list_rate from `tabItem Price` where `tabItem Price`.item_code = `tabItem`.item_code and price_list = "B") as price_list_b,
+(select price_list_rate from `tabItem Price` where `tabItem Price`.item_code = `tabItem`.item_code and price_list = "C") as price_list_c
+from `tabItem` a
+where a.docstatus =1
+{conditions}
+""".format(conditions=conditions), filters, as_dict=1)
+
+
+	result = []
+	if item_results:
+		for item_dict in item_results:
+			data = {
+				'item_code': item_dict.item_code,
+				'item_name': item_dict.item_name,
+				'item_group': item_dict.item_group,
+				'barcode': item_dict.barcode,
+				'buying_price_list': item_dict.buying_price_list,
+				'price_list_a': item_dict.price_list_a,
+				'price_list_b': item_dict.price_list_b,
+				'price_list_c': item_dict.price_list_c,
+			}
+			result.append(data)
+	return result
+	

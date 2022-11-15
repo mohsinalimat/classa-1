@@ -10,5 +10,5 @@ from erpnext.stock.doctype.repost_item_valuation.repost_item_valuation import re
 
 frappe.whitelist()
 def hourly():
-    repost_entries()
+    pass
 

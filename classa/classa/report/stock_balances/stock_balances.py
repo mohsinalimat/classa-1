@@ -128,26 +128,26 @@ def get_item_price_qty_data(filters):
 
 
 
-    result = []
-    if item_results:
-        for item_dict in item_results:
-            data = {
-                'item': item_dict.item,
-                'barcode': item_dict.barcode,
-                'item_name': item_dict.item_name,
-                'item_group': item_dict.item_group,
-                'piece': item_dict.piece,
-                'box': item_dict.box,
-                'box_conversion': item_dict.box_conversion,
-                'carton': item_dict.carton,
-                'carton_conversion': item_dict.carton_conversion,
-                'reserved_qty': item_dict.reserved_qty,
-                'warehouse': item_dict.warehouse,
-                'type': item_dict.type,
-            }
-            result.append(data)
+    # result = []
+    # if item_results:
+    #     for item_dict in item_results:
+    #         data = {
+    #             'item': item_dict.item,
+    #             'barcode': item_dict.barcode,
+    #             'item_name': item_dict.item_name,
+    #             'item_group': item_dict.item_group,
+    #             'piece': item_dict.piece,
+    #             'box': item_dict.box,
+    #             'box_conversion': item_dict.box_conversion,
+    #             'carton': item_dict.carton,
+    #             'carton_conversion': item_dict.carton_conversion,
+    #             'reserved_qty': item_dict.reserved_qty,
+    #             'warehouse': item_dict.warehouse,
+    #             'type': item_dict.type,
+    #         }
+    #         result.append(data)
 
-    return result
+    return item_results
 
 
 

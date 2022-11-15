@@ -159,10 +159,10 @@ def before_validate(doc, method=None):
 
 @frappe.whitelist()
 def validate(doc, method=None):
-    for t in doc.items:
-        item_price_hold = frappe.db.get_value("Item Price", {'item_code': t.item_code,'price_list': doc.selling_price_list}, "hold")
-        if item_price_hold ==1 :
-            frappe.throw("تم ايقاف التعامل على السعر الخاص بالمنتج {0} في الصف {1}".format(t.item_code,t.idx))
+    # for t in doc.items:
+    #     item_price_hold = frappe.db.get_value("Item Price", {'item_code': t.item_code,'price_list': doc.selling_price_list}, "hold")
+    #     if item_price_hold ==1 :
+    #         frappe.throw("تم ايقاف التعامل على السعر الخاص بالمنتج {0} في الصف {1}".format(t.item_code,t.idx))
     for d in doc.items:
         x = d.price_list_rate + (d.price_list_rate * 0.01)
         y = d.rate + (d.rate * 0.01)

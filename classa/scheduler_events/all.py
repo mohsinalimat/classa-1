@@ -10,4 +10,5 @@ from erpnext.stock.doctype.repost_item_valuation.repost_item_valuation import re
 
 frappe.whitelist()
 def all():
-    pass
+    repost_entries()
+    frappe.db.sql(""" update `tabSingles` set value = '0' where doctype = 'Stock Settings' and field = 'allow_negative_stock' """)

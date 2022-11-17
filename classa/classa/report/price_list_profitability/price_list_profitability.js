@@ -4,6 +4,11 @@
 
 frappe.query_reports["Price List Profitability"] = {
 	"filters": [
-
+	    {
+			fieldname:"item_group",
+			label: __("Item Group"),
+			fieldtype: "Link",
+			options: "Item Group"
+		},
 	]
 };

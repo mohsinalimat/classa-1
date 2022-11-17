@@ -268,7 +268,7 @@ def validate(doc, method=None):
     doc.invoice_no = doc.name
     for t in doc.items:
         item_price_hold = frappe.db.get_value("Item Price", {'item_code': t.item_code,'price_list': doc.selling_price_list}, "hold")
-        if item_price_hold ==1 :
+        if item_price_hold ==1 and doc.is_return == 0:
             frappe.throw("تم ايقاف التعامل على السعر الخاص بالمنتج {0} في الصف {1}".format(t.item_code,t.idx))
     if doc.stock_entry:
         frappe.db.sql(

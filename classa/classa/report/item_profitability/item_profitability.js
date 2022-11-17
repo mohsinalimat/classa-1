@@ -9,6 +9,7 @@ frappe.query_reports["Item Profitability"] = {
 			reqd: 1,
 			label: __("From Date"),
 			fieldtype: "Date",
+//			default: frappe.datetime.get_today(),
 			default: frappe.datetime.add_months(frappe.datetime.get_today(), -1),
 		},
 		{
@@ -53,11 +54,16 @@ frappe.query_reports["Item Profitability"] = {
 			fieldtype: "Link",
 			options: "Sales Person"
 		},
-		{
-			fieldname:"totals",
-			label: __("تجميع الاصناف"),
-			fieldtype: "Check"
+//		{
+//			fieldname:"totals",
+//			label: __("تجميع الاصناف"),
+//			fieldtype: "Check"
+//		},
+        {
+			fieldname:"group_by",
+			label: __("Group By"),
+			fieldtype: "Select",
+			options: ["", "Item", "Item Group"]
 		},
-
 	]
 };

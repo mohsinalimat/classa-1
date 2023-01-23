@@ -7,15 +7,15 @@
  "docstatus": 0,
  "doctype": "Report",
  "filters": [],
- "idx": 0,
+ "idx": 72,
  "is_standard": "Yes",
  "letter_head": "sinv",
- "modified": "2022-01-22 18:47:20.759160",
+ "modified": "2023-01-11 14:17:22.372087",
  "modified_by": "Administrator",
  "module": "Classa",
  "name": "Customer Ledger",
  "owner": "Administrator",
- "prepared_report": 0,
+ "prepared_report": 1,
  "ref_doctype": "GL Entry",
  "report_name": "Customer Ledger",
  "report_type": "Script Report",
@@ -61,6 +61,9 @@
   },
   {
    "role": "Dashboard Manager"
+  },
+  {
+   "role": "Branch Accountant"
   }
  ]
 }

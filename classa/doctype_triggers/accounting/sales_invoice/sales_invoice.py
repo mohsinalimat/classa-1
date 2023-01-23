@@ -187,7 +187,7 @@ def before_validate(doc, method=None):
             doc.net_total = totals - doc.discount_amount
             doc.base_net_total = totals - doc.discount_amount
             doc.base_total = totals - doc.discount_amount
-            doc.outstanding_amount = totals - doc.discount_amount
+            #doc.outstanding_amount = totals - doc.discount_amount
             doc.total_taxes_and_charges = 0
 
         else:
@@ -203,7 +203,7 @@ def before_validate(doc, method=None):
             doc.net_total = totals
             doc.base_net_total = totals
             doc.base_total = totals
-            doc.outstanding_amount = totals
+            #doc.outstanding_amount = totals
             doc.total_taxes_and_charges = 0
 
     ## Calculate Taxes Table If Customer Tax Type Is Taxable
@@ -345,7 +345,7 @@ def validate(doc, method=None):
             doc.net_total = totals - doc.discount_amount
             doc.base_net_total = totals - doc.discount_amount
             doc.base_total = totals - doc.discount_amount
-            doc.outstanding_amount = totals - doc.discount_amount
+            #doc.outstanding_amount = totals - doc.discount_amount
             doc.total_taxes_and_charges = 0
 
         else:
@@ -361,7 +361,7 @@ def validate(doc, method=None):
             doc.net_total = totals
             doc.base_net_total = totals
             doc.base_total = totals
-            doc.outstanding_amount = totals
+            #doc.outstanding_amount = totals
             doc.total_taxes_and_charges = 0
 
 @frappe.whitelist()
@@ -436,7 +436,7 @@ def on_submit(doc, method=None):
             doc.net_total = totals - doc.discount_amount
             doc.base_net_total = totals - doc.discount_amount
             doc.base_total = totals - doc.discount_amount
-            doc.outstanding_amount = totals - doc.discount_amount
+            #doc.outstanding_amount = totals - doc.discount_amount
             doc.total_taxes_and_charges = 0
 
         else:
@@ -452,7 +452,7 @@ def on_submit(doc, method=None):
             doc.net_total = totals
             doc.base_net_total = totals
             doc.base_total = totals
-            doc.outstanding_amount = totals
+            #doc.outstanding_amount = totals
             doc.total_taxes_and_charges = 0
 
     if doc.sell_to_employees and doc.is_return == 0:
